@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const { BeatDetector } = window.GuntherBeat;
-  const { computeScene, drawScene } = window.GuntherDancer;
+  const { computeScene, drawScene, characters } = window.GuntherDancer;
 
   const $ = (id) => document.getElementById(id);
   const canvas = $('stage');
@@ -20,6 +20,7 @@
   const offsetInput = $('offset');
   const offsetValue = $('offset-value');
   const fullscreenButton = $('fullscreen-button');
+  const charName = $('char-name');
 
   const now = () => performance.now() / 1000;
 
@@ -46,6 +47,30 @@
     localStorage.setItem('gunther-offset', String(userOffsetMs));
     showOffset();
   });
+
+  // Personagem escolhido, salvo no navegador.
+  let charIndex = 0;
+  function setCharacter(i) {
+    charIndex = ((i % characters.length) + characters.length) % characters.length;
+    charName.textContent = characters[charIndex].name;
+    localStorage.setItem('gunther-character', characters[charIndex].id);
+  }
+  setCharacter(Math.max(0, characters.findIndex((c) => c.id === localStorage.getItem('gunther-character'))));
+  $('prev-char').addEventListener('click', () => setCharacter(charIndex - 1));
+  $('next-char').addEventListener('click', () => setCharacter(charIndex + 1));
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') setCharacter(charIndex - 1);
+    if (e.key === 'ArrowRight') setCharacter(charIndex + 1);
+  });
+  let touchX = null;
+  canvas.addEventListener('touchstart', (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+  canvas.addEventListener('touchend', (e) => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    touchX = null;
+    if (dx < -50) setCharacter(charIndex + 1);
+    if (dx > 50) setCharacter(charIndex - 1);
+  }, { passive: true });
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -87,8 +112,9 @@
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const baseLead = 0.06 + (audioContext ? (audioContext.baseLatency || 0) : 0);
-    const scene = computeScene(state, now(), performance.now() / 1000, baseLead + userOffsetMs / 1000);
-    drawScene(ctx, window.innerWidth, window.innerHeight, scene);
+    const character = characters[charIndex];
+    const scene = computeScene(state, now(), performance.now() / 1000, baseLead + userOffsetMs / 1000, character.moveCount);
+    drawScene(ctx, window.innerWidth, window.innerHeight, scene, character);
     updateHud();
     requestAnimationFrame(frame);
   }
@@ -188,5 +214,5 @@
   });
 
   // Ganchos para testes automatizados.
-  window.__gunther = { state, start, stop, isRunning: () => running };
+  window.__gunther = { state, start, stop, isRunning: () => running, setCharacter, characters };
 })();

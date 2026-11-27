@@ -16,6 +16,12 @@ A pasta `web/` tem a mesma coisa em HTML, CSS e JavaScript puro, publicada autom
 - Funciona no Safari e no Firefox do iPhone, e em qualquer navegador de computador (Chrome, Firefox, Edge, Safari).
 - Abra o link, toque em **Começar a ouvir** e permita o microfone. Nada é gravado nem enviado.
 - No iPhone, pelo Safari, use **Compartilhar → Adicionar à Tela de Início** para ter um ícone como app.
+- **Seis personagens**, trocados pelas setas na tela, deslizando o dedo sobre o palco ou com as setas do teclado:
+  - **Gunther**, o humano, com 8 passos (passo lateral, mãos pra cima, twist, pulo, running man, disco, headbang e onda).
+  - **Tiny Oddity**, o bichinho de pixel art: como é quase só rosto, dança com squash & stretch, pulinhos, giro e expressões (olhos no ritmo, felizes, de estrela no grave forte, piscadinha, surpresa e dormindo no silêncio).
+  - **Zig**, inseto com seis pernas em onda, antenas e braços de louva-a-deus.
+  - **Glob**, ameba de contorno vivo, com pseudópodes e um núcleo com carinha.
+  - **Cardume** e **Enxame**, peixes e abelhas dançando em formação (roda, onda, oito, colunas e coração).
 - Na engrenagem há um ajuste de **sincronia** (em ms) caso o Gunther pareça atrasado ou adiantado nesse navegador. O valor fica salvo.
 - Teste offline do detector: `node web/test/beat-test.js`.
 
@@ -56,7 +62,12 @@ web/
 ├── index.html                   Página, estilos e HUD
 ├── app.js                       Microfone (Web Audio), estado e controles
 ├── beat.js                      FFT, onsets, BPM e relógio de batidas (mesma lógica do Swift)
-├── dancer.js                    Canvas com o Gunther, pista e holofotes
+├── dancer.js                    Cena, fundo, pista, holofotes e registro de personagens
+├── char-gunther.js              Gunther (8 passos)
+├── char-oddity.js               Tiny Oddity, rasterizado em pixel art 64x64
+├── char-insect.js               Zig, o inseto
+├── char-amoeba.js               Glob, a ameba
+├── char-swarm.js                Cardume e Enxame (formações)
 ├── worklet.js                   AudioWorklet que entrega o áudio em mono
 └── test/beat-test.js            Teste com bumbo sintético em vários BPMs
 
