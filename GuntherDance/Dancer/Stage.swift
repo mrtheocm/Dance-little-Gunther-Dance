@@ -23,20 +23,44 @@ struct BeatFrame {
     let accentHue: Double
 
     init(state: DanceState, now: TimeInterval, wallTime: Double, lead: Double, moveCount: Int) {
-        dancing = state.hasBeat && !state.isSilent
-        let period = max(state.beatPeriod, 0.2)
-        let elapsed = max(0, now + lead - state.lastBeatTime)
+        self.init(
+            hasBeat: state.hasBeat, isSilent: state.isSilent, beatPeriod: state.beatPeriod,
+            lastBeatTime: state.lastBeatTime, beatCount: state.beatCount,
+            level: Double(state.level), bass: Double(state.bass), mid: Double(state.mid), high: Double(state.high),
+            lastOnsetTime: state.lastOnsetTime, now: now, wallTime: wallTime, lead: lead, moveCount: moveCount
+        )
+    }
+
+    /// Ritmo de demonstração a 120 BPM, para as miniaturas dançarem mesmo sem música.
+    init(demoAt now: TimeInterval, wallTime: Double, moveCount: Int) {
+        let period = 0.5
+        let whole = floor(now / period)
+        let pulse = 0.5 * (1 + cos(2 * .pi * (now / period - whole)))
+        self.init(
+            hasBeat: true, isSilent: false, beatPeriod: period,
+            lastBeatTime: whole * period, beatCount: Int(whole),
+            level: 0.65, bass: 0.4 + 0.5 * pulse, mid: 0.5, high: 0.4,
+            lastOnsetTime: whole * period, now: now, wallTime: wallTime, lead: 0, moveCount: moveCount
+        )
+    }
+
+    private init(hasBeat: Bool, isSilent: Bool, beatPeriod: TimeInterval, lastBeatTime: TimeInterval, beatCount: Int,
+                 level: Double, bass: Double, mid: Double, high: Double, lastOnsetTime: TimeInterval,
+                 now: TimeInterval, wallTime: Double, lead: Double, moveCount: Int) {
+        dancing = hasBeat && !isSilent
+        let period = max(beatPeriod, 0.2)
+        let elapsed = max(0, now + lead - lastBeatTime)
         let beats = min(elapsed / period, 1_000_000)
         let whole = floor(beats)
         phase = beats - whole
-        beatIndex = state.beatCount + Int(whole)
+        beatIndex = beatCount + Int(whole)
         beatFrac = Double(beatIndex) + phase
-        energy = Double(state.level)
-        bass = Double(state.bass)
-        mid = Double(state.mid)
-        high = Double(state.high)
+        energy = level
+        self.bass = bass
+        self.mid = mid
+        self.high = high
         self.wallTime = wallTime
-        onsetGlow = max(0, 1 - (now - state.lastOnsetTime) / 0.25)
+        onsetGlow = max(0, 1 - (now - lastOnsetTime) / 0.25)
         moveIndex = (beatIndex / 8) % max(1, moveCount)
         pulse = dancing ? 0.5 * (1 + cos(2 * .pi * phase)) : 0
         sway = dancing ? -cos(.pi * beatFrac) : 0
@@ -73,6 +97,7 @@ struct Stage {
 protocol DanceCharacter: AnyObject {
     var id: String { get }
     var name: String { get }
+    var summary: String { get }
     var moveCount: Int { get }
     func draw(_ ctx: inout GraphicsContext, stage: Stage, frame: BeatFrame)
 }

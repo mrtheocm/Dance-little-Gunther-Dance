@@ -4,6 +4,7 @@ import SwiftUI
 final class InsectCharacter: DanceCharacter {
     let id = "insect"
     let name = "Zig"
+    let summary = "Inseto de seis pernas com braços de louva-a-deus."
     let moveCount = 5
 
     func draw(_ ctx: inout GraphicsContext, stage st: Stage, frame s: BeatFrame) {

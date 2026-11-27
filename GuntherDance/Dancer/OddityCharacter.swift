@@ -98,6 +98,7 @@ fileprivate enum Pal {
 final class OddityCharacter: DanceCharacter {
     let id = "oddity"
     let name = "Tiny Oddity"
+    let summary = "Bichinho de pixel art que dança com a cara toda."
     let moveCount = 6
 
     private let size = 64

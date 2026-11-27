@@ -16,6 +16,7 @@ final class SwarmCharacter: DanceCharacter {
     let kind: Kind
     let id: String
     let name: String
+    let summary: String
     let moveCount = 5
     private let count: Int
     private var agents: [Agent] = []
@@ -27,10 +28,12 @@ final class SwarmCharacter: DanceCharacter {
         case .fish:
             id = "fish"
             name = "Cardume"
+            summary = "Quatorze peixes nadando em formação no ritmo."
             count = 14
         case .bees:
             id = "bees"
             name = "Enxame"
+            summary = "Doze abelhas que zumbem mais forte com os agudos."
             count = 12
         }
         for i in 0..<count {

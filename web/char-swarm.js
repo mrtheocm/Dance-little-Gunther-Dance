@@ -27,7 +27,7 @@
     },
   ];
 
-  function makeSwarm({ id, name, count, drawAgent }) {
+  function makeSwarm({ id, name, desc, count, drawAgent }) {
     const agents = [];
     let lastT = null;
     for (let i = 0; i < count; i++) {
@@ -35,7 +35,7 @@
       agents.push({ x, y, vx: 0, vy: 0, heading: 0 });
     }
     register({
-      id, name,
+      id, name, desc,
       moveCount: formations.length,
       draw(ctx, st, s) {
         const dt = lastT === null ? 0.016 : Math.min(0.05, Math.max(0, s.wallTime - lastT));
@@ -76,6 +76,7 @@
   // Peixe: corpo em gota, cauda abanando, olhinho.
   makeSwarm({
     id: 'fish', name: 'Cardume', count: 14,
+    desc: 'Quatorze peixes nadando em formação no ritmo.',
     drawAgent(ctx, st, s, a, i) {
       const u = st.u;
       const [x, y] = st.pt(a.x, a.y);
@@ -104,6 +105,7 @@
   // Abelha: listrada, asas tremendo, zunindo no ritmo dos agudos.
   makeSwarm({
     id: 'bees', name: 'Enxame', count: 12,
+    desc: 'Doze abelhas que zumbem mais forte com os agudos.',
     drawAgent(ctx, st, s, a, i) {
       const u = st.u;
       const jitter = 0.06 * (0.3 + s.high) * (s.dancing ? 1 : 0.3);

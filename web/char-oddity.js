@@ -262,6 +262,7 @@
   register({
     id: 'oddity',
     name: 'Tiny Oddity',
+    desc: 'Bichinho de pixel art que dança com a cara toda.',
     moveCount: 6,
     draw(ctx, st, s) {
       const f = computeFrame(s);
