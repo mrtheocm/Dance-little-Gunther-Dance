@@ -43,6 +43,9 @@
     #bar-mid { background: #ffd94d; box-shadow: 0 0 8px #ffd94d; }
     #bar-high { background: #66e5ff; box-shadow: 0 0 8px #66e5ff; }
     .controls { display: flex; gap: 10px; align-items: center; }
+    .picker { display: flex; gap: 10px; align-items: center; font-weight: 800; letter-spacing: 1px; text-shadow: 0 2px 8px rgba(0,0,0,.6); }
+    .picker .btn.icon { width: 36px; height: 36px; font-size: 14px; }
+    #char-name { min-width: 130px; text-align: center; font-size: 15px; }
     button { font: inherit; color: #fff; border: 0; cursor: pointer; }
     .btn { padding: 12px 20px; border-radius: 999px; font-weight: 700; font-size: 15px;
       background: rgba(255,255,255,.14); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
@@ -80,6 +83,11 @@
       <div class="bar"><div class="track"><div class="fill" id="bar-mid"></div></div>MÉDIO</div>
       <div class="bar"><div class="track"><div class="fill" id="bar-high"></div></div>AGUDO</div>
     </div>
+    <div class="picker">
+      <button class="btn icon" id="prev-char" title="Personagem anterior" aria-label="Personagem anterior">◀</button>
+      <span id="char-name">Gunther</span>
+      <button class="btn icon" id="next-char" title="Próximo personagem" aria-label="Próximo personagem">▶</button>
+    </div>
     <div class="controls">
       <button class="btn icon" id="settings-button" title="Ajustes" aria-label="Ajustes">⚙︎</button>
       <button class="btn" id="pause-button" hidden>Pausar</button>
@@ -101,6 +109,11 @@
 
   <script src="beat.js"></script>
   <script src="dancer.js"></script>
+  <script src="char-gunther.js"></script>
+  <script src="char-oddity.js"></script>
+  <script src="char-insect.js"></script>
+  <script src="char-amoeba.js"></script>
+  <script src="char-swarm.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
