@@ -3,17 +3,18 @@ import UIKit
 
 struct ContentView: View {
     @StateObject private var analyzer = AudioAnalyzer()
+    @StateObject private var characters = CharacterStore()
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         ZStack {
-            DancerView(state: analyzer.dance)
+            DancerView(state: analyzer.dance, store: characters)
                 .ignoresSafeArea()
 
             VStack {
                 BeatHUD(state: analyzer.dance)
                 Spacer()
-                StatusFooter(analyzer: analyzer, state: analyzer.dance)
+                StatusFooter(analyzer: analyzer, state: analyzer.dance, characters: characters)
             }
             .padding(20)
         }
@@ -104,10 +105,12 @@ struct SyncBadge: View {
 struct StatusFooter: View {
     @ObservedObject var analyzer: AudioAnalyzer
     @ObservedObject var state: DanceState
+    @ObservedObject var characters: CharacterStore
 
     var body: some View {
         VStack(spacing: 16) {
             LevelBars(state: state)
+            CharacterPicker(store: characters)
             controls
         }
     }
@@ -206,4 +209,35 @@ struct LevelBars: View {
 
 #Preview {
     ContentView()
+}
+
+// MARK: - Seletor de personagem
+
+struct CharacterPicker: View {
+    @ObservedObject var store: CharacterStore
+
+    var body: some View {
+        HStack(spacing: 12) {
+            arrow("chevron.left", label: "Personagem anterior") { store.previous() }
+            Text(store.current.name)
+                .font(.subheadline.weight(.heavy))
+                .tracking(1)
+                .frame(minWidth: 130)
+                .contentTransition(.opacity)
+                .animation(.easeInOut(duration: 0.15), value: store.index)
+            arrow("chevron.right", label: "Próximo personagem") { store.next() }
+        }
+        .foregroundStyle(.white)
+        .shadow(color: .black.opacity(0.5), radius: 6)
+    }
+
+    private func arrow(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.headline)
+                .frame(width: 38, height: 38)
+                .background(.ultraThinMaterial, in: Circle())
+        }
+        .accessibilityLabel(label)
+    }
 }
