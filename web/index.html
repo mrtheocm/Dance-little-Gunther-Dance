@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>Gunther Dance</title>
-  <meta name="description" content="O Gunther ouve a música pelo microfone e dança no ritmo.">
+  <meta name="description" content="Gunther listens to the music and dances to the beat.">
   <meta name="theme-color" content="#12082a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -42,9 +42,20 @@
     #bar-bass { background: #ff5a80; box-shadow: 0 0 8px #ff5a80; }
     #bar-mid { background: #ffd94d; box-shadow: 0 0 8px #ffd94d; }
     #bar-high { background: #66e5ff; box-shadow: 0 0 8px #66e5ff; }
-    .controls { display: flex; gap: 8px; align-items: center; }
+    .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; align-items: center; }
+    .start-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; align-items: center; }
+    .lang-select { font: inherit; font-size: 14px; font-weight: 700; color: #fff; padding: 11px 14px; border-radius: 999px;
+      border: 0; background: rgba(255,255,255,.14); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    .lang-select option { color: #000; }
+    #settings .lang-select { border-radius: 12px; }
     .btn { white-space: nowrap; }
-    @media (max-width: 420px) { .controls .btn:not(.icon) { padding: 12px 16px; } .controls .emoji { display: none; } }
+    @media (max-width: 420px) {
+      .footer { padding-left: 14px; padding-right: 14px; }
+      .controls .btn:not(.icon) { padding: 12px 14px; }
+      .controls .emoji, #fullscreen-button { display: none; }
+    }
+    #settings-fullscreen { display: none; }
+    @media (max-width: 420px) { body.can-fullscreen #settings-fullscreen { display: block; } }
     .picker { display: flex; gap: 10px; align-items: center; font-weight: 800; letter-spacing: 1px; text-shadow: 0 2px 8px rgba(0,0,0,.6); }
     .picker .btn.icon { width: 36px; height: 36px; font-size: 14px; }
     #char-name { min-width: 130px; text-align: center; font-size: 15px; font-weight: 800; letter-spacing: 1px;
@@ -140,81 +151,87 @@
       <div class="brand">GUNTHER</div>
       <div class="bpm-row"><span id="bpm">—</span><span class="bpm-unit">BPM</span></div>
     </div>
-    <div class="badge"><span id="sync-dot" data-quality="off"></span><span id="sync-label">Pausado</span></div>
+    <div class="badge"><span id="sync-dot" data-quality="off"></span><span id="sync-label">Paused</span></div>
   </header>
 
   <div id="linkbox" hidden>
     <form id="link-form">
-      <input id="link-input" type="url" inputmode="url" autocomplete="off" placeholder="Cole um link do YouTube ou SoundCloud" aria-label="Link da música">
-      <button class="btn small" type="submit">Tocar</button>
+      <input id="link-input" type="url" inputmode="url" autocomplete="off" data-i18n-attr="placeholder:link.placeholder, aria-label:link.aria">
+      <button class="btn small" type="submit" data-i18n="link.play">Play</button>
     </form>
     <div id="link-embed"></div>
     <div class="link-foot">
-      <small id="link-hint">O personagem ouve pelo microfone: use o alto-falante, não fone de ouvido.</small>
-      <button class="link-collapse" id="link-collapse" type="button">▴ Esconder player</button>
+      <small id="link-hint"></small>
+      <button class="link-collapse" id="link-collapse" type="button"></button>
     </div>
   </div>
 
   <div class="footer">
     <div id="player" hidden>
       <div class="pl-row">
-        <button class="pl-btn" id="pl-prev" aria-label="Música anterior">⏮</button>
-        <button class="pl-btn main" id="pl-play" aria-label="Tocar">▶</button>
-        <button class="pl-btn" id="pl-next" aria-label="Próxima música">⏭</button>
+        <button class="pl-btn" id="pl-prev" data-i18n-attr="aria-label:player.prev, title:player.prev">⏮</button>
+        <button class="pl-btn main" id="pl-play">▶</button>
+        <button class="pl-btn" id="pl-next" data-i18n-attr="aria-label:player.next, title:player.next">⏭</button>
         <div class="pl-info">
-          <div id="pl-title">Nenhuma música</div>
+          <div id="pl-title"></div>
           <div id="pl-status"></div>
         </div>
-        <button class="pl-btn" id="pl-list" aria-label="Lista de músicas">☰</button>
-        <button class="pl-btn" id="pl-add" aria-label="Adicionar músicas">＋</button>
+        <button class="pl-btn" id="pl-list" data-i18n-attr="aria-label:player.list, title:player.list">☰</button>
+        <button class="pl-btn" id="pl-add" data-i18n-attr="aria-label:player.add, title:player.add">＋</button>
       </div>
       <div class="pl-seek-row">
         <span id="pl-cur">0:00</span>
-        <input type="range" id="pl-seek" min="0" max="1000" value="0" aria-label="Posição na música">
+        <input type="range" id="pl-seek" min="0" max="1000" value="0" data-i18n-attr="aria-label:player.seek">
         <span id="pl-dur">0:00</span>
       </div>
       <ol id="pl-queue" hidden></ol>
     </div>
     <div class="bars">
-      <div class="bar"><div class="track"><div class="fill" id="bar-bass"></div></div>GRAVE</div>
-      <div class="bar"><div class="track"><div class="fill" id="bar-mid"></div></div>MÉDIO</div>
-      <div class="bar"><div class="track"><div class="fill" id="bar-high"></div></div>AGUDO</div>
+      <div class="bar"><div class="track"><div class="fill" id="bar-bass"></div></div><span data-i18n="bars.bass">BASS</span></div>
+      <div class="bar"><div class="track"><div class="fill" id="bar-mid"></div></div><span data-i18n="bars.mid">MID</span></div>
+      <div class="bar"><div class="track"><div class="fill" id="bar-high"></div></div><span data-i18n="bars.high">TREBLE</span></div>
     </div>
     <div class="picker">
-      <button class="btn icon" id="prev-char" title="Personagem anterior" aria-label="Personagem anterior">◀</button>
-      <button id="char-name" title="Ver todos os personagens">Gunther</button>
-      <button class="btn icon" id="next-char" title="Próximo personagem" aria-label="Próximo personagem">▶</button>
+      <button class="btn icon" id="prev-char" data-i18n-attr="title:picker.prev, aria-label:picker.prev">◀</button>
+      <button id="char-name" data-i18n-attr="title:picker.all">Gunther</button>
+      <button class="btn icon" id="next-char" data-i18n-attr="title:picker.next, aria-label:picker.next">▶</button>
     </div>
     <div class="controls">
-      <button class="btn icon" id="settings-button" title="Ajustes" aria-label="Ajustes">⚙︎</button>
-      <button class="btn" id="gallery-button"><span class="emoji">👾 </span>Personagens</button>
-      <button class="btn" id="pause-button" hidden>Trocar fonte</button>
-      <button class="btn icon" id="fullscreen-button" title="Tela cheia" aria-label="Tela cheia">⛶</button>
+      <button class="btn icon" id="settings-button" data-i18n-attr="title:controls.settings, aria-label:controls.settings">⚙︎</button>
+      <button class="btn" id="gallery-button"><span class="emoji">👾 </span><span data-i18n="controls.characters">Characters</span></button>
+      <button class="btn" id="pause-button" hidden data-i18n="controls.switchSource">Change source</button>
+      <button class="btn icon" id="fullscreen-button" data-i18n-attr="title:controls.fullscreen, aria-label:controls.fullscreen">⛶</button>
     </div>
   </div>
 
   <div id="settings" hidden>
-    <label>Sincronia <span id="offset-value">0 ms</span></label>
+    <label for="offset"><span data-i18n="settings.sync">Sync</span> <span id="offset-value">0 ms</span></label>
     <input type="range" id="offset" min="-200" max="200" step="10" value="0">
-    <small>Se o Gunther parecer atrasado em relação à música, aumente. Se estiver adiantado, diminua.</small>
+    <small data-i18n="settings.syncHelp"></small>
+    <label for="lang-select" data-i18n="settings.language">Language</label>
+    <select id="lang-select" class="lang-select"></select>
+    <button class="btn" id="settings-fullscreen" type="button">⛶ <span data-i18n="controls.fullscreen">Full screen</span></button>
   </div>
 
   <div id="start-overlay">
-    <p>De onde vem a música? Nada é gravado nem enviado para lugar nenhum.</p>
+    <p data-i18n="start.question"></p>
     <p id="error" hidden></p>
     <div class="sources">
-      <button class="source" id="start-button"><b>🎤 Microfone</b><span>Para a balada: ouve o som do ambiente.</span></button>
-      <button class="source" id="src-file"><b>🎵 Minhas músicas</b><span>Arquivos do aparelho, com sincronia perfeita.</span></button>
-      <button class="source" id="src-link"><b>▶️ YouTube ou SoundCloud</b><span>Cole um link; o personagem ouve pelo microfone.</span></button>
+      <button class="source" id="start-button"><b data-i18n="start.mic.title"></b><span data-i18n="start.mic.desc"></span></button>
+      <button class="source" id="src-file"><b data-i18n="start.file.title"></b><span data-i18n="start.file.desc"></span></button>
+      <button class="source" id="src-link"><b data-i18n="start.link.title"></b><span data-i18n="start.link.desc"></span></button>
     </div>
-    <button class="btn" id="start-gallery-button">👾 Escolher personagem: <span id="start-char-name">Gunther</span></button>
+    <div class="start-row">
+      <button class="btn" id="start-gallery-button"><span data-i18n="start.chooseCharacter"></span> <span id="start-char-name">Gunther</span></button>
+      <select id="start-lang" class="lang-select" data-i18n-attr="aria-label:settings.language, title:settings.language"></select>
+    </div>
   </div>
 
   <div id="gallery" hidden role="dialog" aria-modal="true" aria-labelledby="gallery-title">
     <div class="gallery-panel">
       <div class="gallery-head">
-        <h2 id="gallery-title">Escolha quem vai dançar</h2>
-        <button class="btn icon" id="gallery-close" aria-label="Fechar">✕</button>
+        <h2 id="gallery-title" data-i18n="gallery.title"></h2>
+        <button class="btn icon" id="gallery-close" data-i18n-attr="aria-label:gallery.close, title:gallery.close">✕</button>
       </div>
       <div class="gallery-grid" id="gallery-grid"></div>
     </div>
@@ -222,6 +239,7 @@
 
   <input type="file" id="file-input" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac" multiple hidden>
 
+  <script src="i18n.js"></script>
   <script src="beat.js"></script>
   <script src="track.js"></script>
   <script src="links.js"></script>

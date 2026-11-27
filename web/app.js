@@ -9,6 +9,11 @@
   const { computeScene, drawScene, characters } = window.GuntherDancer;
   const { analyzeTrack, downmix } = window.GuntherTrack;
   const { parseMusicLink } = window.GuntherLinks;
+  const i18n = window.GuntherI18n;
+  const t = i18n.t;
+  // Nome e descrição de cada personagem no idioma atual.
+  const charLabel = (c) => t('char.' + c.id + '.name', null, c.name);
+  const charDesc = (c) => t('char.' + c.id + '.desc', null, c.desc || '');
 
   const $ = (id) => document.getElementById(id);
   const canvas = $('stage');
@@ -66,13 +71,11 @@
     button.setAttribute('aria-pressed', 'false');
     const thumb = document.createElement('canvas');
     const title = document.createElement('strong');
-    title.textContent = c.name;
     const desc = document.createElement('span');
-    desc.textContent = c.desc || '';
     button.append(thumb, title, desc);
     button.addEventListener('click', () => { setCharacter(i); closeGallery(); });
     galleryGrid.appendChild(button);
-    return { button, thumb, ctx: thumb.getContext('2d'), character: c };
+    return { button, thumb, title, desc, ctx: thumb.getContext('2d'), character: c };
   });
 
   function openGallery() {
@@ -120,8 +123,8 @@
   let charIndex = 0;
   function setCharacter(i) {
     charIndex = ((i % characters.length) + characters.length) % characters.length;
-    charName.textContent = characters[charIndex].name;
-    startCharName.textContent = characters[charIndex].name;
+    charName.textContent = charLabel(characters[charIndex]);
+    startCharName.textContent = charLabel(characters[charIndex]);
     cards.forEach((card, j) => card.button.setAttribute('aria-pressed', String(j === charIndex)));
     localStorage.setItem('gunther-character', characters[charIndex].id);
   }
@@ -156,6 +159,8 @@
     const top = footer.getBoundingClientRect().top;
     stageHeight = Math.max(240, Math.min(window.innerHeight, (top - 10) / 0.78));
     stageTop = linkBox.hidden ? 0 : linkBox.getBoundingClientRect().bottom + 8;
+    // O painel de ajustes abre logo acima dos controles, sem cobrir o player.
+    settingsPanel.style.bottom = Math.max(16, window.innerHeight - top + 8) + 'px';
   }
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -181,17 +186,19 @@
     if (bpmText.textContent !== text) bpmText.textContent = text;
 
     let quality, label;
-    if (!mode) { quality = 'off'; label = 'Pausado'; }
+    let key;
+    if (!mode) { quality = 'off'; key = 'sync.paused'; }
     else if (mode === 'file') {
       const entry = queue[current];
-      if (!entry) { quality = 'off'; label = 'Escolha músicas'; }
-      else if (!entry.result) { quality = 'searching'; label = entry.error ? 'Não deu para analisar' : 'Analisando a música...'; }
-      else if (audio.paused) { quality = 'off'; label = 'Pausado'; }
-      else if (state.isSilent || !state.hasBeat) { quality = 'searching'; label = 'Esperando a batida'; }
-      else { quality = 'locked'; label = 'No ritmo!'; }
-    } else if (!state.hasBeat || state.isSilent) { quality = 'searching'; label = state.isSilent ? 'Ouvindo...' : 'Procurando o ritmo'; }
-    else if (state.confidence > 0.55) { quality = 'locked'; label = 'No ritmo!'; }
-    else { quality = 'locking'; label = 'Pegando o ritmo'; }
+      if (!entry) { quality = 'off'; key = 'sync.chooseMusic'; }
+      else if (!entry.result) { quality = 'searching'; key = entry.error ? 'sync.analyzeFailed' : 'sync.analyzing'; }
+      else if (audio.paused) { quality = 'off'; key = 'sync.paused'; }
+      else if (state.isSilent || !state.hasBeat) { quality = 'searching'; key = 'sync.waitingBeat'; }
+      else { quality = 'locked'; key = 'sync.locked'; }
+    } else if (!state.hasBeat || state.isSilent) { quality = 'searching'; key = state.isSilent ? 'sync.listening' : 'sync.searching'; }
+    else if (state.confidence > 0.55) { quality = 'locked'; key = 'sync.locked'; }
+    else { quality = 'locking'; key = 'sync.locking'; }
+    label = t(key);
     if (syncDot.dataset.quality !== quality) syncDot.dataset.quality = quality;
     if (syncLabel.textContent !== label) syncLabel.textContent = label;
 
@@ -257,7 +264,7 @@
   async function startMic() {
     if (mic.stream) return true;
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      showError('Este navegador não dá acesso ao microfone. No iPhone, use o Safari ou atualize o iOS.');
+      showError(t('error.noMic'));
       return false;
     }
     try {
@@ -294,9 +301,7 @@
       return true;
     } catch (err) {
       const denied = err && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
-      showError(denied
-        ? 'Sem permissão para o microfone. Libere o microfone para este site nos ajustes do navegador e tente de novo.'
-        : 'Não consegui abrir o microfone: ' + (err && err.message ? err.message : err));
+      showError(denied ? t('error.micDenied') : t('error.micFailed', { msg: err && err.message ? err.message : String(err) }));
       stopMic();
       return false;
     }
@@ -456,15 +461,16 @@
 
   function renderPlayer() {
     const entry = queue[current];
-    plTitle.textContent = entry ? entry.name : 'Nenhuma música';
+    plTitle.textContent = entry ? entry.name : t('player.none');
     let status = '';
-    if (!entry) status = 'Toque em + para escolher músicas do aparelho';
-    else if (entry.error) status = 'Não consegui ler este arquivo. Tente MP3 ou M4A.';
-    else if (!entry.result) status = `Analisando a batida... ${Math.round((entry.progress || 0) * 100)}%`;
-    else status = `${Math.round(entry.result.bpm)} BPM · faixa ${current + 1} de ${queue.length}`;
+    if (!entry) status = t('player.empty');
+    else if (entry.error) status = t('player.badFile');
+    else if (!entry.result) status = t('player.analyzing', { p: Math.round((entry.progress || 0) * 100) });
+    else status = t('player.info', { bpm: Math.round(entry.result.bpm), i: current + 1, n: queue.length });
     plStatus.textContent = status;
     plPlay.textContent = audio.paused ? '▶' : '⏸';
-    plPlay.setAttribute('aria-label', audio.paused ? 'Tocar' : 'Pausar');
+    plPlay.setAttribute('aria-label', t(audio.paused ? 'player.play' : 'player.pause'));
+    plPlay.title = plPlay.getAttribute('aria-label');
     $('pl-prev').disabled = current <= 0;
     $('pl-next').disabled = current < 0 || current >= queue.length - 1;
     // Lista.
@@ -529,33 +535,40 @@
   // ---------------------------------------------------------------- fonte 3: link do YouTube ou SoundCloud
 
   const linkInput = $('link-input'), linkEmbed = $('link-embed'), linkHint = $('link-hint');
+  const linkCollapse = $('link-collapse');
+  let linkHintKey = 'link.hint';
+  function renderLinkTexts() {
+    linkHint.textContent = t(linkHintKey);
+    linkHint.classList.toggle('warn', linkHintKey === 'link.unknown');
+    linkCollapse.textContent = t(linkBox.classList.contains('collapsed') ? 'link.show' : 'link.hide');
+    const frame = linkEmbed.querySelector('iframe');
+    if (frame) frame.title = t(linkEmbed.dataset.kind === 'soundcloud' ? 'link.scTitle' : 'link.ytTitle');
+  }
 
   $('link-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const parsed = parseMusicLink(linkInput.value);
     if (!parsed) {
-      linkHint.textContent = 'Não reconheci esse link. Cole um link do YouTube, YouTube Music ou SoundCloud.';
-      linkHint.classList.add('warn');
+      linkHintKey = 'link.unknown';
+      renderLinkTexts();
       return;
     }
-    linkHint.classList.remove('warn');
-    linkHint.textContent = 'O personagem ouve pelo microfone: use o alto-falante, não fone de ouvido.';
+    linkHintKey = 'link.hint';
     const iframe = document.createElement('iframe');
     iframe.src = parsed.embedUrl;
-    iframe.title = parsed.kind === 'youtube' ? 'Player do YouTube' : 'Player do SoundCloud';
     iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
     iframe.referrerPolicy = 'strict-origin-when-cross-origin';
     iframe.setAttribute('allowfullscreen', '');
     linkEmbed.dataset.kind = parsed.kind;
     linkEmbed.replaceChildren(iframe);
     linkBox.classList.remove('collapsed');
-    $('link-collapse').textContent = '▴ Esconder player';
+    renderLinkTexts();
     requestAnimationFrame(measureStage);
     await startMic();
   });
-  $('link-collapse').addEventListener('click', () => {
+  linkCollapse.addEventListener('click', () => {
     linkBox.classList.toggle('collapsed');
-    $('link-collapse').textContent = linkBox.classList.contains('collapsed') ? '▾ Mostrar player' : '▴ Esconder player';
+    renderLinkTexts();
     requestAnimationFrame(measureStage);
   });
 
@@ -572,7 +585,6 @@
     player.hidden = next !== 'file';
     linkBox.hidden = next !== 'link';
     stopButton.hidden = false;
-    stopButton.textContent = 'Trocar fonte';
     if (next === 'file') { setAudioSession('playback'); renderPlayer(); }
     resetState();
     keepScreenOn();
@@ -615,12 +627,16 @@
   stopButton.addEventListener('click', showSourcePicker);
 
   $('settings-button').addEventListener('click', () => { settingsPanel.hidden = !settingsPanel.hidden; });
-  fullscreenButton.addEventListener('click', () => {
+  const toggleFullscreen = () => {
     const el = document.documentElement;
     if (document.fullscreenElement) document.exitFullscreen();
     else if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
-  });
+  };
+  fullscreenButton.addEventListener('click', toggleFullscreen);
+  $('settings-fullscreen').addEventListener('click', () => { settingsPanel.hidden = true; toggleFullscreen(); });
+  // No iPhone o Safari não tem tela cheia para páginas: o botão nem aparece.
   if (!document.documentElement.requestFullscreen) fullscreenButton.hidden = true;
+  else document.body.classList.add('can-fullscreen');
 
   document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState === 'visible' && mode) {
@@ -629,6 +645,33 @@
     }
   });
 
+  // ---------------------------------------------------------------- idioma
+
+  const langSelects = [$('lang-select'), $('start-lang')];
+  for (const sel of langSelects) {
+    for (const { code, name } of i18n.languages()) {
+      const opt = document.createElement('option');
+      opt.value = code;
+      opt.textContent = (sel.id === 'start-lang' ? '🌐 ' : '') + name;
+      sel.appendChild(opt);
+    }
+    sel.addEventListener('change', () => i18n.setLang(sel.value));
+  }
+  function renderLanguage() {
+    langSelects.forEach((sel) => { sel.value = i18n.getLang(); });
+    cards.forEach((card) => {
+      card.title.textContent = charLabel(card.character);
+      card.desc.textContent = charDesc(card.character);
+    });
+    setCharacter(charIndex);
+    renderPlayer();
+    renderLinkTexts();
+    requestAnimationFrame(measureStage);
+  }
+  i18n.onChange(renderLanguage);
+  i18n.apply();
+  renderLanguage();
+
   // Ganchos para testes automatizados.
   window.__gunther = {
     state, setCharacter, characters, openGallery, closeGallery,
@@ -636,5 +679,6 @@
     mode: () => mode, isRunning: () => !!mode,
     start: () => $('start-button').click(), stop: showSourcePicker,
     audio, queue: () => queue, track: () => queue[current] || null, songTime: () => songTime(now()),
+    setLang: i18n.setLang, lang: i18n.getLang,
   };
 })();
