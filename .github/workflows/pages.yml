@@ -25,6 +25,8 @@ jobs:
           node-version: 22
       - name: Testar o detector de batida
         run: node web/test/beat-test.js
+      - name: Testar pés batendo no chão no kick
+        run: node web/test/sync-test.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

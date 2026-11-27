@@ -34,6 +34,9 @@
     ctx.stroke();
   }
 
+  // Fração da batida, logo depois do kick, em que pés e corpo ficam no chão absorvendo o impacto.
+  const CONTACT = 0.18;
+
   // Calcula a fase da batida e os sinais úteis para animação.
   function computeScene(state, now, wallTime, lead, moveCount) {
     const dancing = state.hasBeat && !state.isSilent;
@@ -44,6 +47,8 @@
     const phase = beats - whole;
     const beatIndex = state.beatCount + whole;
     const beatFrac = beatIndex + phase;
+    // Depois da janela de contato, o pulo (ou o passo) sobe e desce para pousar exatamente no próximo kick.
+    const air = phase < CONTACT ? -1 : (phase - CONTACT) / (1 - CONTACT);
     return {
       phase,
       beatIndex,
@@ -64,6 +69,14 @@
       // -1...1 com extremos entre as batidas.
       swayMid: dancing ? Math.sin(Math.PI * beatFrac) : 0,
       accentHue: (Math.floor(beatIndex / 4) % 8) / 8,
+      // Altura do pulo ou do pé levantado, 0..1: zero no kick e durante o contato, pico no meio do ar.
+      hop: dancing && air >= 0 ? 4 * air * (1 - air) : 0,
+      // Impacto do pouso, 0..1: 1 exatamente no kick, some ao fim da janela de contato.
+      land: dancing && phase < CONTACT ? Math.pow(1 - phase / CONTACT, 2) : 0,
+      // Velocidade vertical no ar, 0..1: máxima ao decolar e ao pousar (para esticar o corpo).
+      stretch: dancing && air >= 0 ? Math.abs(1 - 2 * air) : 0,
+      // Qual pé está no ar nesta batida: true = direito. Alterna a cada batida.
+      rightStep: beatIndex % 2 === 0,
     };
   }
 
@@ -145,7 +158,7 @@
   }
 
   root.GuntherDancer = {
-    characters, register, computeScene, drawScene,
+    characters, register, computeScene, drawScene, CONTACT,
     util: { hsl, frac, clamp01, roundRect, ellipse, strokePoints },
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

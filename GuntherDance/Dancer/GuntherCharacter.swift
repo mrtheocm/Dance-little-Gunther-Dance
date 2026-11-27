@@ -26,6 +26,9 @@ fileprivate struct Pose {
     var headTilt = 0.0
     var jump = 0.0
     var mouthOpen = 0.0
+    /// Altura de cada pé acima do chão, em unidades do palco. A cinemática inversa dobra o joelho para alcançar.
+    var liftL = 0.0
+    var liftR = 0.0
     var armL = Limb(angle: 0.3, bend: 0.5)
     var armR = Limb(angle: 0.3, bend: 0.5)
     var legL = Limb(angle: 0.12, bend: 0.2)
@@ -52,89 +55,100 @@ final class GuntherCharacter: DanceCharacter {
         }
 
         let amp = 0.55 + 0.45 * f.energy
-        let pulse = f.pulse, sway = f.sway, swayMid = f.swayMid, ph = f.phase
-        let dip = pulse * (0.4 + 0.6 * f.bass)
-        let arc = 4 * ph * (1 - ph)
+        let pulse = f.pulse, sway = f.sway, swayMid = f.swayMid, hop = f.hop, land = f.land
+        // Joelhos dobram no kick: impacto do pouso mais um balanço suave.
+        let dip = (0.6 * land + 0.4 * pulse) * (0.4 + 0.6 * f.bass)
+        // Pé que sobe entre as batidas e pousa no kick seguinte.
+        let stepR = f.rightStep ? hop : 0
+        let stepL = f.rightStep ? 0 : hop
         let swayPos = max(0, sway), swayNeg = max(0, -sway)
 
         switch f.moveIndex {
-        case 0: // passo lateral
+        case 0: // passo lateral: o pé do lado para onde o corpo vai sobe e pousa no kick
             p.hipX = 0.55 * sway * amp
             p.lean = 0.12 * sway
             p.headTilt = -0.15 * sway
             p.armL = Limb(angle: 0.45 - 0.3 * sway * amp, bend: 0.9 + 0.4 * pulse)
             p.armR = Limb(angle: 0.45 + 0.3 * sway * amp, bend: 0.9 + 0.4 * pulse)
-            p.legL = Limb(angle: 0.15 + 0.2 * swayNeg, bend: 0.15 + 0.5 * swayPos + 0.25 * dip)
-            p.legR = Limb(angle: 0.15 + 0.2 * swayPos, bend: 0.15 + 0.5 * swayNeg + 0.25 * dip)
+            p.legL = Limb(angle: 0.15 + 0.2 * swayNeg + 0.15 * stepL, bend: 0.15 + 0.3 * dip)
+            p.legR = Limb(angle: 0.15 + 0.2 * swayPos + 0.15 * stepR, bend: 0.15 + 0.3 * dip)
+            p.liftL = 0.45 * stepL
+            p.liftR = 0.45 * stepR
 
-        case 1: // mãos para cima
+        case 1: // mãos para cima, quicando no kick
             p.hipX = 0.25 * sway * amp
             p.lean = 0.06 * sway
             p.headTilt = 0.1 * swayMid
             p.armL = Limb(angle: 2.6 + 0.2 * sway, bend: 0.25 + 0.55 * pulse)
             p.armR = Limb(angle: 2.6 - 0.2 * sway, bend: 0.25 + 0.55 * pulse)
-            p.legL = Limb(angle: 0.2, bend: 0.2 + 0.5 * dip)
-            p.legR = Limb(angle: 0.2, bend: 0.2 + 0.5 * dip)
+            p.legL = Limb(angle: 0.2, bend: 0.2 + 0.6 * dip)
+            p.legR = Limb(angle: 0.2, bend: 0.2 + 0.6 * dip)
             p.mouthOpen = 0.6 * pulse
 
-        case 2: // twist
+        case 2: // twist, com um pé de cada vez batendo no kick
             p.hipX = 0.15 * swayMid * amp
             p.lean = -0.1 * sway
             p.headTilt = 0.2 * sway
             p.armL = Limb(angle: 1.4 + 0.4 * sway * amp, bend: 1.3)
             p.armR = Limb(angle: 1.4 - 0.4 * sway * amp, bend: 1.3)
-            p.legL = Limb(angle: 0.08, bend: 0.2 + 0.4 * swayPos + 0.2 * dip)
-            p.legR = Limb(angle: 0.08, bend: 0.2 + 0.4 * swayNeg + 0.2 * dip)
+            p.legL = Limb(angle: 0.1 + 0.1 * stepL, bend: 0.2 + 0.25 * dip)
+            p.legR = Limb(angle: 0.1 + 0.1 * stepR, bend: 0.2 + 0.25 * dip)
+            p.liftL = 0.35 * stepL
+            p.liftR = 0.35 * stepR
 
-        case 3: // pulo com punho no ar
-            p.jump = (f.energy > 0.45 ? 0.9 : 0.35) * arc
+        case 3: // pulo com punho no ar: decola depois do kick, pousa no próximo
+            p.jump = (f.energy > 0.45 ? 0.9 : 0.35) * hop
             p.lean = 0.05 * sway
-            p.armR = Limb(angle: 2.9 - 0.5 * pulse, bend: 0.3 + 0.3 * pulse)
-            p.armL = Limb(angle: 0.5 + 0.2 * arc, bend: 0.8)
-            p.legL = Limb(angle: 0.15, bend: 0.15 + 0.5 * pulse + 0.4 * arc)
-            p.legR = Limb(angle: 0.15, bend: 0.15 + 0.5 * pulse + 0.4 * arc)
-            p.mouthOpen = 0.8 * arc
+            p.armR = Limb(angle: 2.9 - 0.5 * land, bend: 0.3 + 0.3 * land)
+            p.armL = Limb(angle: 0.5 + 0.2 * hop, bend: 0.8)
+            p.legL = Limb(angle: 0.15, bend: 0.15 + 0.7 * land)
+            p.legR = Limb(angle: 0.15, bend: 0.15 + 0.7 * land)
+            p.liftL = 0.4 * hop // encolhe as pernas no ar
+            p.liftR = 0.4 * hop
+            p.mouthOpen = 0.8 * hop
 
-        case 4: // running man
-            let lift = sin(.pi * ph)
-            let leftTurn = f.beatIndex % 2 == 0
-            let liftL = leftTurn ? lift : 0
-            let liftR = leftTurn ? 0 : lift
+        case 4: // running man: cada pé sobe e pisa no kick
             p.lean = 0.08
             p.headTilt = 0.05 * swayMid
-            p.legL = Limb(angle: 0.1 + 0.9 * liftL, bend: 0.2 + 1.3 * liftL + 0.2 * dip)
-            p.legR = Limb(angle: 0.1 + 0.9 * liftR, bend: 0.2 + 1.3 * liftR + 0.2 * dip)
-            p.armL = Limb(angle: 0.6 + 0.5 * liftR, bend: 1.3 + 0.3 * liftR)
-            p.armR = Limb(angle: 0.6 + 0.5 * liftL, bend: 1.3 + 0.3 * liftL)
+            p.legL = Limb(angle: 0.1 + 0.5 * stepL, bend: 0.2 + 0.2 * dip)
+            p.legR = Limb(angle: 0.1 + 0.5 * stepR, bend: 0.2 + 0.2 * dip)
+            p.liftL = 0.9 * stepL
+            p.liftR = 0.9 * stepR
+            p.armL = Limb(angle: 0.6 + 0.5 * stepR, bend: 1.3 + 0.3 * stepR)
+            p.armR = Limb(angle: 0.6 + 0.5 * stepL, bend: 1.3 + 0.3 * stepL)
 
-        case 5: // disco: dedo apontando pra cima, alternando
+        case 5: // disco: dedo apontando pra cima, pé batendo no kick
             p.hipX = 0.4 * sway * amp
             p.lean = 0.15 * sway
             p.headTilt = 0.12 * sway
             p.armR = Limb(angle: 1.65 + 0.85 * sway, bend: 0.15)
             p.armL = Limb(angle: 1.65 - 0.85 * sway, bend: 0.15)
-            p.legL = Limb(angle: 0.2 + 0.15 * swayNeg, bend: 0.2 + 0.4 * swayPos + 0.2 * dip)
-            p.legR = Limb(angle: 0.2 + 0.15 * swayPos, bend: 0.2 + 0.4 * swayNeg + 0.2 * dip)
+            p.legL = Limb(angle: 0.2 + 0.15 * swayNeg + 0.1 * stepL, bend: 0.2 + 0.25 * dip)
+            p.legR = Limb(angle: 0.2 + 0.15 * swayPos + 0.1 * stepR, bend: 0.2 + 0.25 * dip)
+            p.liftL = 0.35 * stepL
+            p.liftR = 0.35 * stepR
             p.mouthOpen = 0.3 * pulse
 
-        case 6: // headbang
-            p.headTilt = 0.4 * cos(2 * .pi * ph) * amp
-            p.lean = -0.05 + 0.1 * pulse
+        case 6: // headbang: cabeça e joelhos descem no kick
+            p.headTilt = (0.5 * land + 0.2 * pulse - 0.15) * amp
+            p.lean = -0.05 + 0.12 * land
             p.armL = Limb(angle: 0.7, bend: 1.7 - 0.3 * pulse)
             p.armR = Limb(angle: 0.7, bend: 1.7 - 0.3 * pulse)
             p.legL = Limb(angle: 0.3, bend: 0.3 + 0.6 * dip)
             p.legR = Limb(angle: 0.3, bend: 0.3 + 0.6 * dip)
-            p.mouthOpen = 0.9 * pulse
+            p.mouthOpen = 0.9 * land
 
-        default: // onda com os braços
+        default: // onda com os braços, passinho no kick
             let w = 2 * .pi * f.beatFrac
             p.hipX = 0.3 * sway * amp
             p.lean = 0.08 * sway
             p.headTilt = -0.1 * sway
             p.armL = Limb(angle: 1.55 + 0.3 * sin(w), bend: 0.7 * sin(w + 1.3))
             p.armR = Limb(angle: 1.55 + 0.3 * sin(w + .pi), bend: 0.7 * sin(w + .pi + 1.3))
-            p.legL = Limb(angle: 0.15 + 0.15 * swayNeg, bend: 0.2 + 0.3 * swayPos + 0.2 * dip)
-            p.legR = Limb(angle: 0.15 + 0.15 * swayPos, bend: 0.2 + 0.3 * swayNeg + 0.2 * dip)
+            p.legL = Limb(angle: 0.15 + 0.15 * swayNeg + 0.1 * stepL, bend: 0.2 + 0.25 * dip)
+            p.legR = Limb(angle: 0.15 + 0.15 * swayPos + 0.1 * stepR, bend: 0.2 + 0.25 * dip)
+            p.liftL = 0.3 * stepL
+            p.liftR = 0.3 * stepR
         }
 
         // Agudos fazem a cabeça tremer de leve.
@@ -150,17 +164,20 @@ final class GuntherCharacter: DanceCharacter {
         func P(_ v: V) -> CGPoint { st.pt(v.x, v.y) }
         func legExtent(_ l: Limb) -> Double { thigh * cos(l.angle) + shin * cos(l.angle - l.bend) }
 
-        let hip = V(x: pose.hipX, y: max(legExtent(pose.legL), legExtent(pose.legR)) + pose.jump)
+        // O quadril fica na altura da perna mais curta, para as duas alcançarem o chão.
+        let hip = V(x: pose.hipX, y: min(legExtent(pose.legL), legExtent(pose.legR)) + pose.jump)
         let hipL = hip + V(x: -0.42, y: 0)
         let hipR = hip + V(x: 0.42, y: 0)
 
-        func leg(_ l: Limb, from h: V, side: Double) -> (knee: V, foot: V) {
-            let knee = h + V.fromDown(l.angle, side: side) * thigh
-            let foot = knee + V.fromDown(l.angle - l.bend, side: side) * shin
-            return (knee, foot)
+        func leg(_ l: Limb, from h: V, side: Double, lift: Double) -> (knee: V, foot: V) {
+            // A pose de base diz onde o pé fica no chão; a altura vem do lift (e do pulo).
+            let kneeHint = h + V.fromDown(l.angle, side: side) * thigh
+            let baseFoot = kneeHint + V.fromDown(l.angle - l.bend, side: side) * shin
+            let target = V(x: baseFoot.x, y: pose.jump + lift)
+            return ik(hip: h, target: target, kneeHint: kneeHint, thigh: thigh, shin: shin)
         }
-        let legL = leg(pose.legL, from: hipL, side: -1)
-        let legR = leg(pose.legR, from: hipR, side: 1)
+        let legL = leg(pose.legL, from: hipL, side: -1, lift: pose.liftL)
+        let legR = leg(pose.legR, from: hipR, side: 1, lift: pose.liftR)
 
         let torsoDir = V.fromUp(pose.lean)
         let neck = hip + torsoDir * torsoLen
@@ -224,6 +241,23 @@ final class GuntherCharacter: DanceCharacter {
         face.translateBy(x: hc.x, y: hc.y)
         face.rotate(by: .radians(pose.lean + pose.headTilt))
         drawFace(&face, radius: hr, mouthOpen: pose.mouthOpen, hair: outline, accent: Draw.hsl(f.accentHue, 0.9, 0.55))
+    }
+
+    /// Cinemática inversa de duas juntas: acha o joelho para o pé alcançar o alvo.
+    /// Das duas soluções possíveis, fica com a mais próxima do joelho da pose de base.
+    private func ik(hip: V, target: V, kneeHint: V, thigh: Double, shin: Double) -> (knee: V, foot: V) {
+        let dx = target.x - hip.x, dy = target.y - hip.y
+        let d = max(1e-6, hypot(dx, dy))
+        let ux = dx / d, uy = dy / d
+        let dc = min(thigh + shin - 1e-6, max(abs(thigh - shin) + 1e-6, d))
+        let along = (thigh * thigh - shin * shin + dc * dc) / (2 * dc)
+        let h = sqrt(max(0, thigh * thigh - along * along))
+        let bx = hip.x + ux * along, by = hip.y + uy * along
+        let k1 = V(x: bx - uy * h, y: by + ux * h)
+        let k2 = V(x: bx + uy * h, y: by - ux * h)
+        func dist2(_ k: V) -> Double { (k.x - kneeHint.x) * (k.x - kneeHint.x) + (k.y - kneeHint.y) * (k.y - kneeHint.y) }
+        let knee = dist2(k1) <= dist2(k2) ? k1 : k2
+        return (knee, V(x: hip.x + ux * dc, y: hip.y + uy * dc))
     }
 
     private func drawFace(_ ctx: inout GraphicsContext, radius r: Double, mouthOpen: Double, hair: Color, accent: Color) {

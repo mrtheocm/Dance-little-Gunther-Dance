@@ -9,55 +9,56 @@ final class InsectCharacter: DanceCharacter {
 
     func draw(_ ctx: inout GraphicsContext, stage st: Stage, frame s: BeatFrame) {
         let u = st.u
-        let pulse = s.pulse, sway = s.sway, swayMid = s.swayMid, ph = s.phase
+        let pulse = s.pulse, sway = s.sway, swayMid = s.swayMid
+        let hop = s.hop, land = s.land
         let amp = 0.6 + 0.4 * s.energy
-        let arc = 4 * ph * (1 - ph)
+        let bounce = 0.6 * land + 0.4 * pulse
         let t = s.wallTime
 
+        // stepLift: quanto as pernas do tripé ativo sobem entre as batidas (pousam no kick).
         var hipX = 0.0, dip = 0.0, jump = 0.0, wag = 0.0, headTilt = 0.0
-        var legSpeed = 0.5, legLift = 0.5, tuck = 0.0
+        var stepLift = 0.0, tuck = 0.0
         var armA = 1.0, armBend = 2.4
 
         if !s.dancing {
             hipX = 0.05 * sin(t * 0.8)
             wag = 0.08 * sin(t * 1.1)
             headTilt = 0.1 * sin(t * 0.6)
-            legSpeed = 0
-            legLift = 0
             armBend = 2.4 + 0.1 * sin(t * 1.3)
         } else {
             switch s.moveIndex {
-            case 0: // onda nas pernas, bracinhos rezando
-                dip = 0.25 * pulse * amp
+            case 0: // marcha de tripé, bracinhos rezando
+                stepLift = 0.6
+                dip = 0.25 * bounce * amp
                 armBend = 2.4 - 0.6 * pulse
                 wag = 0.1 * swayMid
             case 1: // corridinha de lado
                 hipX = 0.9 * sway * amp
-                legSpeed = 1
-                legLift = 0.7
-                dip = 0.15 * pulse
+                stepLift = 0.8
+                dip = 0.15 * land
                 headTilt = -0.15 * sway
                 armA = 0.8
                 armBend = 2.0 + 0.3 * swayMid
-            case 2: // braços pra cima
+            case 2: // braços pra cima, pisando no kick
+                stepLift = 0.35
                 armA = 2.6 + 0.15 * sway
                 armBend = 0.3 + 0.5 * pulse
-                dip = 0.3 * pulse * amp
+                dip = 0.3 * bounce * amp
                 wag = 0.15 * sway
             case 3: // rebolado do abdômen
+                stepLift = 0.35
                 wag = 0.45 * swayMid * amp
                 headTilt = -0.25 * swayMid
                 hipX = 0.2 * sway
-                dip = 0.1 * pulse
+                dip = 0.1 * bounce
                 armA = 1.4
                 armBend = 1.6 + 0.4 * sway
-            default: // pulinho com pernas encolhidas
-                jump = 0.8 * arc * amp
-                tuck = arc
-                dip = 0.3 * pulse
-                armA = 1.2 + 1.2 * arc
-                armBend = 2.2 - 1.5 * arc
-                legLift = 0
+            default: // pulinho com pernas encolhidas, pousando no kick
+                jump = 0.8 * hop * amp
+                tuck = hop
+                dip = 0.35 * land
+                armA = 1.2 + 1.2 * hop
+                armBend = 2.2 - 1.5 * hop
             }
         }
 
@@ -69,19 +70,20 @@ final class InsectCharacter: DanceCharacter {
 
         st.shadow(&ctx, x: hipX, width: 2.8, lift: jump)
 
-        // Pernas: três pares, cada uma com fase própria.
+        // Pernas: marcha de tripé, como os insetos de verdade. Em cada batida um tripé
+        // (frente e trás de um lado, meio do outro) sobe e pousa no kick seguinte.
         let attach: [(Double, Double)] = [(0.7, 3.0), (0.8, 2.3), (0.7, 1.6)]
         for k in 0..<3 {
             for side in [-1.0, 1.0] {
-                let raw = s.beatFrac * legSpeed + Double(k) / 3 + (side > 0 ? 0.5 : 0)
-                let legPhase = raw - floor(raw)
-                let wave = sin(2 * .pi * legPhase)
-                let lift = legLift * pow(max(0, wave), 2) + 0.9 * tuck
+                let tripodA = (k == 1) == (side > 0)
+                let active = s.rightStep ? tripodA : !tripodA
+                let step = active ? hop : 0
+                let lift = stepLift * step + 0.9 * tuck
                 let ax = hipX + side * attach[k].0
                 let ay = attach[k].1 + baseY
                 let kneeX = ax + side * (1.0 + 0.25 * Double(k)) * (1 - 0.4 * tuck)
                 let kneeY = ay + 0.55 + 0.3 * lift
-                let footX = kneeX + side * (0.55 - 0.2 * tuck) + 0.15 * wave * side
+                let footX = kneeX + side * (0.55 - 0.2 * tuck) + side * 0.15 * stepLift * step
                 let footY = max(0, lift + 0.6 * tuck + (jump > 0 ? jump * 0.5 : 0))
                 Draw.stroke(&ctx, [st.pt(ax, ay), st.pt(kneeX, kneeY), st.pt(footX, footY)], legColor, 0.17 * u)
                 let fp = st.pt(footX, footY)

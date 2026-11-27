@@ -21,6 +21,17 @@ struct BeatFrame {
     /// -1...1 com extremos entre as batidas.
     let swayMid: Double
     let accentHue: Double
+    /// Altura do pulo ou do pé levantado, 0...1: zero no kick e durante o contato, pico no meio do ar.
+    let hop: Double
+    /// Impacto do pouso, 0...1: 1 exatamente no kick, some ao fim da janela de contato.
+    let land: Double
+    /// Velocidade vertical no ar, 0...1: máxima ao decolar e ao pousar (para esticar o corpo).
+    let stretch: Double
+    /// Qual pé está no ar nesta batida: true = direito. Alterna a cada batida.
+    let rightStep: Bool
+
+    /// Fração da batida, logo depois do kick, em que pés e corpo ficam no chão absorvendo o impacto.
+    static let contact = 0.18
 
     init(state: DanceState, now: TimeInterval, wallTime: Double, lead: Double, moveCount: Int) {
         self.init(
@@ -66,6 +77,13 @@ struct BeatFrame {
         sway = dancing ? -cos(.pi * beatFrac) : 0
         swayMid = dancing ? sin(.pi * beatFrac) : 0
         accentHue = Double((beatIndex / 4) % 8) / 8
+        // Depois da janela de contato, o pulo (ou o passo) sobe e desce para pousar exatamente no próximo kick.
+        let contact = BeatFrame.contact
+        let air = phase < contact ? -1 : (phase - contact) / (1 - contact)
+        hop = dancing && air >= 0 ? 4 * air * (1 - air) : 0
+        land = dancing && phase < contact ? pow(1 - phase / contact, 2) : 0
+        stretch = dancing && air >= 0 ? abs(1 - 2 * air) : 0
+        rightStep = beatIndex % 2 == 0
     }
 }
 

@@ -17,7 +17,8 @@
       const a = q * TAU + (TAU * s.beatFrac) / 8;
       return [2.8 * Math.sin(a), 3.3 + 1.4 * Math.sin(2 * a)];
     },
-    (q, s) => [(q - 0.5) * 6.8, 0.8 + 2.8 * Math.abs(Math.sin(Math.PI * (s.beatFrac + q)))], // colunas quicando
+    // colunas quicando: todas batem no fundo juntas no kick, cada uma numa altura
+    (q, s) => [(q - 0.5) * 6.8, 0.8 + 2.8 * (0.65 + 0.35 * Math.sin(q * TAU * 2)) * s.hop],
     (q, s) => { // coração pulsando
       const a = q * TAU;
       const k = 0.14 * (1 + 0.18 * s.pulse);
@@ -28,11 +29,13 @@
   ];
 
   function makeSwarm({ id, name, desc, count, drawAgent }) {
+    // Cada bichinho fica exatamente no seu lugar da formação, para o ritmo não atrasar.
+    // A molinha só suaviza os saltos quando a formação muda (ox, oy: desvio que vai sumindo).
     const agents = [];
     let lastT = null;
+    let lastKey = null;
     for (let i = 0; i < count; i++) {
-      const [x, y] = formations[0](i / count, { beatFrac: 0, pulse: 0 });
-      agents.push({ x, y, vx: 0, vy: 0, heading: 0 });
+      agents.push({ x: 0, y: 3.3, ox: 0, oy: 0, ovx: 0, ovy: 0, heading: 0 });
     }
     register({
       id, name, desc,
@@ -41,6 +44,9 @@
         const dt = lastT === null ? 0.016 : Math.min(0.05, Math.max(0, s.wallTime - lastT));
         lastT = s.wallTime;
         const formation = s.dancing ? formations[s.moveIndex] : null;
+        const key = s.dancing ? s.moveIndex : -1;
+        const changed = key !== lastKey;
+        lastKey = key;
         const shift = s.dancing ? 0.3 * s.sway : 0;
         agents.forEach((a, i) => {
           const q = i / count;
@@ -53,15 +59,21 @@
             tx = 2.3 * Math.cos(w);
             ty = 3.3 + 0.9 * Math.sin(2 * w);
           }
-          const k = 45, damp = 9;
-          a.vx += ((tx - a.x) * k - a.vx * damp) * dt;
-          a.vy += ((ty - a.y) * k - a.vy * damp) * dt;
-          a.x += a.vx * dt;
-          a.y += a.vy * dt;
-          const speed = Math.hypot(a.vx, a.vy);
-          if (speed > 0.3) {
-            const target = Math.atan2(a.vy, a.vx);
-            let d = target - a.heading;
+          const px = a.x, py = a.y;
+          if (changed) {
+            a.ox = px - tx;
+            a.oy = py - ty;
+          }
+          const k = 45, damp = 13;
+          a.ovx += (-a.ox * k - a.ovx * damp) * dt;
+          a.ovy += (-a.oy * k - a.ovy * damp) * dt;
+          a.ox += a.ovx * dt;
+          a.oy += a.ovy * dt;
+          a.x = tx + a.ox;
+          a.y = ty + a.oy;
+          const vx = dt > 0 ? (a.x - px) / dt : 0, vy = dt > 0 ? (a.y - py) / dt : 0;
+          if (Math.hypot(vx, vy) > 0.3) {
+            let d = Math.atan2(vy, vx) - a.heading;
             d = ((d + Math.PI) % TAU + TAU) % TAU - Math.PI;
             a.heading += d * Math.min(1, dt * 10);
           }
