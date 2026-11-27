@@ -42,7 +42,9 @@
     #bar-bass { background: #ff5a80; box-shadow: 0 0 8px #ff5a80; }
     #bar-mid { background: #ffd94d; box-shadow: 0 0 8px #ffd94d; }
     #bar-high { background: #66e5ff; box-shadow: 0 0 8px #66e5ff; }
-    .controls { display: flex; gap: 10px; align-items: center; }
+    .controls { display: flex; gap: 8px; align-items: center; }
+    .btn { white-space: nowrap; }
+    @media (max-width: 420px) { .controls .btn:not(.icon) { padding: 12px 16px; } .controls .emoji { display: none; } }
     .picker { display: flex; gap: 10px; align-items: center; font-weight: 800; letter-spacing: 1px; text-shadow: 0 2px 8px rgba(0,0,0,.6); }
     .picker .btn.icon { width: 36px; height: 36px; font-size: 14px; }
     #char-name { min-width: 130px; text-align: center; font-size: 15px; font-weight: 800; letter-spacing: 1px;
@@ -108,7 +110,7 @@
     </div>
     <div class="controls">
       <button class="btn icon" id="settings-button" title="Ajustes" aria-label="Ajustes">⚙︎</button>
-      <button class="btn" id="gallery-button">👾 Personagens</button>
+      <button class="btn" id="gallery-button"><span class="emoji">👾 </span>Personagens</button>
       <button class="btn" id="pause-button" hidden>Pausar</button>
       <button class="btn icon" id="fullscreen-button" title="Tela cheia" aria-label="Tela cheia">⛶</button>
     </div>

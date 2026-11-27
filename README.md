@@ -14,7 +14,7 @@ Página web que **ouve a música da balada pelo microfone**, detecta a batida e 
 Toque em **Personagens** (ou no nome do personagem atual) para abrir a galeria, com cada um dançando ao vivo, e toque no cartão para escolher. Também dá para trocar pelas setas, deslizando o dedo sobre o palco ou com as setas do teclado. A escolha fica salva no navegador.
 
 - **Gunther**, o humano, com 8 passos: passo lateral, mãos pra cima, twist, pulo, running man, disco, headbang e onda.
-- **Tiny Oddity**, o bichinho de pixel art. Como é quase só rosto, dança com squash & stretch, pulinhos, giro e expressões: olhos no ritmo, felizes, de estrela no grave forte, piscadinha, surpresa e dormindo no silêncio.
+- **Tiny Oddity**, o bichinho fofo de chifres amarelo e roxo. Como é quase só rosto, dança com squash & stretch, pulinhos, giro e expressões: olhos no ritmo, felizes, de estrela no grave forte, piscadinha, surpresa e dormindo no silêncio.
 - **Zig**, inseto com seis pernas que marcha em tripé, antenas e braços de louva-a-deus.
 - **Glob**, ameba de contorno vivo, com pseudópodes e um núcleo com carinha.
 - **Cardume** e **Enxame**, peixes e abelhas dançando em formação: roda, onda, oito, colunas quicando e coração.
@@ -37,7 +37,7 @@ web/
 ├── worklet.js                   AudioWorklet que entrega o áudio em mono
 ├── dancer.js                    Cena, fundo, pista, holofotes e registro de personagens
 ├── char-gunther.js              Gunther (8 passos, pernas com cinemática inversa)
-├── char-oddity.js               Tiny Oddity, rasterizado em pixel art 64x64
+├── char-oddity.js               Tiny Oddity
 ├── char-insect.js               Zig, o inseto
 ├── char-amoeba.js               Glob, a ameba
 ├── char-swarm.js                Cardume e Enxame (formações)

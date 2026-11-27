@@ -1,182 +1,206 @@
-// Tiny Oddity: o bichinho fofo em pixel art. Rasterizado em 64x64 e ampliado sem suavização.
+// Tiny Oddity: bichinho fofo de chifres amarelo e roxo, desenhado em vetor.
 // Como ele é quase só rosto, a dança vive de squash & stretch e de expressões.
+// Coordenadas do modelo: origem no centro do corpo, y para baixo; 1 unidade = 1/64 de 7,5 u do palco.
 (function () {
   'use strict';
-  const { register } = window.GuntherDancer;
+  const { register, util } = window.GuntherDancer;
+  const { ellipse } = util;
 
-  const SIZE = 64;
-  const off = document.createElement('canvas');
-  off.width = SIZE;
-  off.height = SIZE;
-  const octx = off.getContext('2d');
-  const img = octx.createImageData(SIZE, SIZE);
-  const buf = new Uint32Array(img.data.buffer);
-
-  // Cores no formato do buffer (little endian: 0xAABBGGRR).
-  const rgb = (hex) => {
-    const n = parseInt(hex.slice(1), 16);
-    return (0xff << 24 | (n & 0xff) << 16 | (n & 0xff00) | (n >> 16)) >>> 0;
-  };
   const C = {
-    white: rgb('#ffffff'), halo: rgb('#dcd7ea'), yellow: rgb('#ffd93d'), yellowDark: rgb('#d9ad00'),
-    purple: rgb('#a259ff'), purpleDark: rgb('#7a3fe0'), dark: rgb('#2b2838'), pink: rgb('#f4a9cf'),
-    lavender: rgb('#cdb4ff'), iris: rgb('#ffcc33'), irisDark: rgb('#3a2d4d'), grey: rgb('#b9b6c8'),
+    white: '#ffffff', shade: '#ece6f7', outline: '#c9c0de', yellow: '#ffd93d', yellowDark: '#e0b300',
+    purple: '#a259ff', purpleDark: '#7a3fe0', dark: '#2b2838', pink: '#f4a9cf', lavender: '#b9a2f0',
+    iris: '#ffcc33', irisDark: '#3a2d4d',
   };
+  const TAU = Math.PI * 2;
 
-  // Formas em coordenadas do modelo (origem no centro do corpo, y para baixo).
-  const ellipse = (cx, cy, rx, ry, color) => ({ t: 0, cx, cy, rx, ry, color });
-  const capsule = (x1, y1, x2, y2, r, color) => ({ t: 1, x1, y1, x2, y2, r, color });
-  const poly = (pts, color) => ({ t: 2, pts, color });
-
-  function contains(sh, x, y) {
-    if (sh.t === 0) {
-      const dx = (x - sh.cx) / sh.rx, dy = (y - sh.cy) / sh.ry;
-      return dx * dx + dy * dy <= 1;
-    }
-    if (sh.t === 1) {
-      const vx = sh.x2 - sh.x1, vy = sh.y2 - sh.y1;
-      const len2 = vx * vx + vy * vy || 1;
-      let t = ((x - sh.x1) * vx + (y - sh.y1) * vy) / len2;
-      t = Math.max(0, Math.min(1, t));
-      const dx = x - (sh.x1 + vx * t), dy = y - (sh.y1 + vy * t);
-      return dx * dx + dy * dy <= sh.r * sh.r;
-    }
-    const p = sh.pts;
-    let inside = false;
-    for (let i = 0, j = p.length - 1; i < p.length; j = i++) {
-      const [xi, yi] = p[i], [xj, yj] = p[j];
-      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
-    }
-    return inside;
-  }
-
-  function polyline(points, r, color, out) {
-    for (let i = 0; i + 1 < points.length; i++) {
-      out.push(capsule(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1], r, color));
-    }
-  }
-
-  function star(cx, cy, r, color) {
-    const pts = [];
-    for (let i = 0; i < 8; i++) {
-      const a = (i * Math.PI) / 4 - Math.PI / 2;
-      const rr = i % 2 === 0 ? r : r * 0.42;
-      pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]);
-    }
-    return poly(pts, color);
-  }
-
-  // Olhos: 'normal' | 'happy' | 'star' | 'sleep' | 'wink' | 'wide'
-  function buildShapes(f) {
-    const sh = [];
-    const w = f.hornWiggle;
-
-    // Halo claro em volta do corpo, para o contorno suave.
-    sh.push(ellipse(0, 0, 22.5, 20.5, C.halo));
+  // Corpo fofo: uma elipse com dez "pompons" em volta.
+  function fluff(ctx, grow) {
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 21 + grow, 19 + grow, 0, 0, TAU);
     for (let i = 0; i < 10; i++) {
-      const a = (i / 10) * Math.PI * 2;
-      sh.push(ellipse(Math.cos(a) * 18, Math.sin(a) * 16, 6.3, 6.3, C.halo));
+      const a = (i / 10) * TAU;
+      const x = Math.cos(a) * 18, y = Math.sin(a) * 16;
+      ctx.moveTo(x + 5 + grow, y);
+      ctx.arc(x, y, 5 + grow, 0, TAU);
     }
-    // Chifres (atrás do corpo).
-    sh.push(poly([[-17, -9], [-23 + w, -27], [-19 + w, -29.5], [-8, -16]], C.yellow));
-    sh.push(poly([[-18, -10], [-22 + w, -25], [-16, -16]], C.yellowDark));
-    sh.push(poly([[17, -9], [25 - w, -28], [20 - w, -31.5], [8, -16]], C.purple));
-    sh.push(poly([[18, -10], [23 - w, -26], [16, -16]], C.purpleDark));
-    // Corpo fofo.
-    sh.push(ellipse(0, 0, 21, 19, C.white));
-    for (let i = 0; i < 10; i++) {
-      const a = (i / 10) * Math.PI * 2;
-      sh.push(ellipse(Math.cos(a) * 18, Math.sin(a) * 16, 5, 5, C.white));
+  }
+
+  function starPath(ctx, cx, cy, r, inner = 0.42, points = 4) {
+    ctx.beginPath();
+    for (let i = 0; i < points * 2; i++) {
+      const a = (i * Math.PI) / points - Math.PI / 2;
+      const rr = i % 2 === 0 ? r : r * inner;
+      const x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
-    // Pés.
-    sh.push(ellipse(-9 + f.feetL, 19 - 3 * f.liftL, 4, 2.5, C.yellow));
-    sh.push(ellipse(9 + f.feetR, 19 - 3 * f.liftR, 4, 2.5, C.purple));
-    // Marquinha "x" na testa e bochechas.
-    polyline([[-10.5, -13.5], [-7.5, -10.5]], 0.7, C.lavender, sh);
-    polyline([[-7.5, -13.5], [-10.5, -10.5]], 0.7, C.lavender, sh);
-    sh.push(ellipse(-13.5, 5, 2.6, 1.4, C.pink));
-    sh.push(ellipse(13.5, 5, 2.6, 1.4, C.pink));
+    ctx.closePath();
+  }
 
-    // Olhos.
-    const eye = (ex, kind) => {
-      const ey = -1;
-      if (kind === 'happy') {
-        polyline([[ex - 4.5, ey + 1], [ex, ey - 3], [ex + 4.5, ey + 1]], 1.1, C.dark, sh);
-        return;
-      }
-      if (kind === 'sleep') {
-        polyline([[ex - 4, ey + 1], [ex + 4, ey + 1]], 1.0, C.dark, sh);
-        return;
-      }
-      if (kind === 'star') {
-        sh.push(star(ex, ey, 6.5, C.dark));
-        sh.push(star(ex, ey, 5, C.iris));
-        return;
-      }
-      const big = kind === 'wide' ? 1.25 : 1;
-      sh.push(ellipse(ex, ey, 6.5 * big, 7.5 * big, C.dark));
-      sh.push(ellipse(ex, ey, 5.5 * big, 6.5 * big, C.white));
-      const px = ex + f.lookX * 1.6, py = ey + f.lookY * 1.2 + 0.5;
-      const ir = kind === 'wide' ? 0.8 : 1;
-      sh.push(ellipse(px, py, 3.6 * ir, 4.6 * ir, C.irisDark));
-      sh.push(ellipse(px, py + 1.8, 2.4 * ir, 2.0 * ir, C.iris));
-      sh.push(ellipse(px - 1.3, py - 1.9, 1.3, 1.6, C.white));
-    };
-    eye(-8, f.eyeL);
-    eye(8, f.eyeR);
+  function line(ctx, pts, color, width) {
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+  }
 
-    // Boca.
+  function drawHorns(ctx, w) {
+    // Chifre amarelo (esquerda), em forma de chama.
+    ctx.beginPath();
+    ctx.moveTo(-16, -7);
+    ctx.quadraticCurveTo(-26 + w * 0.4, -16, -22 + w, -31);
+    ctx.quadraticCurveTo(-19 + w * 0.8, -25, -16 + w * 0.6, -27);
+    ctx.quadraticCurveTo(-15 + w * 0.4, -20, -6, -15);
+    ctx.closePath();
+    const gy = ctx.createLinearGradient(-20, -30, -10, -8);
+    gy.addColorStop(0, C.yellow);
+    gy.addColorStop(1, C.yellowDark);
+    ctx.fillStyle = gy;
+    ctx.fill();
+    // Chifre roxo (direita), com duas pontas.
+    ctx.beginPath();
+    ctx.moveTo(16, -7);
+    ctx.quadraticCurveTo(27 - w * 0.4, -15, 23 - w, -32);
+    ctx.quadraticCurveTo(20 - w * 0.8, -26, 17 - w * 0.6, -29);
+    ctx.quadraticCurveTo(15 - w * 0.4, -21, 6, -15);
+    ctx.closePath();
+    const gp = ctx.createLinearGradient(20, -31, 10, -8);
+    gp.addColorStop(0, C.purple);
+    gp.addColorStop(1, C.purpleDark);
+    ctx.fillStyle = gp;
+    ctx.fill();
+  }
+
+  function drawEye(ctx, ex, kind, f) {
+    const ey = -1;
+    if (kind === 'happy') {
+      ctx.beginPath();
+      ctx.moveTo(ex - 4.5, ey + 1.5);
+      ctx.quadraticCurveTo(ex, ey - 4.5, ex + 4.5, ey + 1.5);
+      ctx.strokeStyle = C.dark;
+      ctx.lineWidth = 1.8;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      return;
+    }
+    if (kind === 'sleep') {
+      ctx.beginPath();
+      ctx.moveTo(ex - 4, ey);
+      ctx.quadraticCurveTo(ex, ey + 2.5, ex + 4, ey);
+      ctx.strokeStyle = C.dark;
+      ctx.lineWidth = 1.5;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      return;
+    }
+    if (kind === 'star') {
+      starPath(ctx, ex, ey, 7, 0.45, 4);
+      ctx.fillStyle = C.dark;
+      ctx.fill();
+      starPath(ctx, ex, ey, 5.3, 0.45, 4);
+      ctx.fillStyle = C.iris;
+      ctx.fill();
+      ellipse(ctx, ex - 1, ey - 1.5, 0.9, 0.9, '#ffffff');
+      return;
+    }
+    const big = kind === 'wide' ? 1.22 : 1;
+    ellipse(ctx, ex, ey, 6.6 * big, 7.6 * big, C.dark);
+    ellipse(ctx, ex, ey, 5.5 * big, 6.5 * big, C.white);
+    const ir = kind === 'wide' ? 0.75 : 1;
+    const px = ex + f.lookX * 1.5, py = ey + f.lookY * 1.2 + 0.5;
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(px, py, 3.8 * ir, 4.8 * ir, 0, 0, TAU);
+    ctx.fillStyle = C.irisDark;
+    ctx.fill();
+    ctx.clip();
+    ellipse(ctx, px, py + 3.2 * ir, 3.4 * ir, 2.6 * ir, C.iris);
+    ctx.restore();
+    ellipse(ctx, px - 1.4 * ir, py - 1.9 * ir, 1.5 * ir, 1.7 * ir, '#ffffff');
+    ellipse(ctx, px + 1.3 * ir, py + 1.2 * ir, 0.6 * ir, 0.6 * ir, '#ffffff');
+  }
+
+  function drawMouth(ctx, f) {
     if (f.mouth === 'open') {
-      sh.push(ellipse(0, 9.5, 3.2 * f.mouthScale, 3.4 * f.mouthScale, C.dark));
-      sh.push(ellipse(0, 10.8, 1.9 * f.mouthScale, 1.3 * f.mouthScale, C.pink));
+      const m = f.mouthScale;
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(0, 9.5, 3.2 * m, 3.4 * m, 0, 0, TAU);
+      ctx.fillStyle = C.dark;
+      ctx.fill();
+      ctx.clip();
+      ellipse(ctx, 0, 9.5 + 2.2 * m, 2.4 * m, 1.6 * m, C.pink);
+      ctx.restore();
     } else if (f.mouth === 'o') {
-      sh.push(ellipse(0, 9, 2.2, 2.4, C.dark));
+      ellipse(ctx, 0, 9, 2.2, 2.5, C.dark);
     } else if (f.mouth === 'flat') {
-      polyline([[-2.5, 9], [2.5, 9]], 0.8, C.dark, sh);
+      line(ctx, [[-2.5, 9], [2.5, 9]], C.dark, 1.2);
     } else {
-      polyline([[-3, 8], [0, 9.6], [3, 8]], 0.8, C.dark, sh);
+      ctx.beginPath();
+      ctx.moveTo(-3.2, 8);
+      ctx.quadraticCurveTo(0, 11, 3.2, 8);
+      ctx.strokeStyle = C.dark;
+      ctx.lineWidth = 1.3;
+      ctx.lineCap = 'round';
+      ctx.stroke();
     }
+  }
 
-    // Enfeites.
+  function drawFoot(ctx, x, y, color, edge) {
+    ellipse(ctx, x, y + 0.6, 5, 3.2, edge);
+    ellipse(ctx, x, y, 4.6, 2.9, color);
+    ellipse(ctx, x - 1.4, y - 1, 1.5, 0.8, 'rgba(255,255,255,0.45)');
+  }
+
+  // Corpo, chifres, pés e rosto, já dentro da transformação do squash.
+  function drawBody(ctx, f) {
+    drawHorns(ctx, f.hornWiggle);
+    // Contorno suave e corpo com sombreado.
+    fluff(ctx, 1.3);
+    ctx.fillStyle = C.outline;
+    ctx.fill();
+    fluff(ctx, 0);
+    const g = ctx.createRadialGradient(-6, -8, 2, 0, 0, 24);
+    g.addColorStop(0, C.white);
+    g.addColorStop(0.65, C.white);
+    g.addColorStop(1, C.shade);
+    ctx.fillStyle = g;
+    ctx.fill();
+    // Marquinha "x" na testa e bochechas.
+    line(ctx, [[-10.5, -13.5], [-7.5, -10.5]], C.lavender, 1.2);
+    line(ctx, [[-7.5, -13.5], [-10.5, -10.5]], C.lavender, 1.2);
+    ellipse(ctx, -13.5, 5, 2.8, 1.6, 'rgba(244,169,207,0.85)');
+    ellipse(ctx, 13.5, 5, 2.8, 1.6, 'rgba(244,169,207,0.85)');
+    // Pezinhos na frente, embaixo do corpo.
+    drawFoot(ctx, -9.5 + f.feetL, 20 - 3.5 * f.liftL, C.yellow, C.yellowDark);
+    drawFoot(ctx, 9.5 + f.feetR, 20 - 3.5 * f.liftR, C.purple, C.purpleDark);
+    drawEye(ctx, -8, f.eyeL, f);
+    drawEye(ctx, 8, f.eyeR, f);
+    drawMouth(ctx, f);
+  }
+
+  // Enfeites que não amassam junto com o corpo.
+  function drawExtras(ctx, f) {
     if (f.exclaim) {
-      sh.push(capsule(0, -34, 0, -28, 1.1, C.yellow));
-      sh.push(ellipse(0, -25.5, 1.2, 1.2, C.yellow));
+      line(ctx, [[0, -40], [0, -33]], C.yellow, 2.4);
+      ellipse(ctx, 0, -29.5, 1.3, 1.3, C.yellow);
     }
     if (f.sparkle > 0) {
-      const r = 2 + 2 * f.sparkle;
-      sh.push(star(-30, -14, r, C.yellow));
-      sh.push(star(31, -8, r * 0.8, C.lavender));
-      sh.push(star(27, 14, r * 0.6, C.yellow));
-    }
-    if (f.zzz) {
-      const z = (x, y, k) => {
-        polyline([[x, y], [x + 3 * k, y], [x, y + 3 * k], [x + 3 * k, y + 3 * k]], 0.6 * k, C.lavender, sh);
-      };
-      const bob = Math.sin(f.t * 1.5) * 1.5;
-      z(22, -26 + bob, 1);
-      z(27, -31 - bob, 1.3);
-    }
-    return sh;
-  }
-
-  function rasterize(shapes, tf) {
-    buf.fill(0);
-    const cos = Math.cos(-tf.rot), sin = Math.sin(-tf.rot);
-    const isx = 1 / tf.sx, isy = 1 / tf.sy;
-    for (let py = 0; py < SIZE; py++) {
-      for (let px = 0; px < SIZE; px++) {
-        const dx = px + 0.5 - tf.cx, dy = py + 0.5 - tf.cy;
-        const rx = dx * cos - dy * sin, ry = dx * sin + dy * cos;
-        const mx = rx * isx, my = ry * isy;
-        for (let i = shapes.length - 1; i >= 0; i--) {
-          if (contains(shapes[i], mx, my)) {
-            buf[py * SIZE + px] = shapes[i].color;
-            break;
-          }
-        }
+      const r = 2 + 2.5 * f.sparkle;
+      for (const [x, y, k, color] of [[-31, -14, 1, C.yellow], [31, -9, 0.8, C.lavender], [27, 14, 0.6, C.yellow], [-27, 12, 0.5, C.lavender]]) {
+        starPath(ctx, x, y, r * k, 0.35, 4);
+        ctx.fillStyle = color;
+        ctx.fill();
       }
     }
-    octx.putImageData(img, 0, 0);
+    if (f.zzz) {
+      const bob = Math.sin(f.t * 1.5) * 1.5;
+      for (const [x, y, k] of [[22, -27 + bob, 1], [27.5, -33 - bob, 1.35]]) {
+        line(ctx, [[x, y], [x + 3 * k, y], [x, y + 3 * k], [x + 3 * k, y + 3 * k]], C.lavender, 0.9 * k);
+      }
+    }
   }
 
   function computeFrame(s) {
@@ -265,25 +289,26 @@
   register({
     id: 'oddity',
     name: 'Tiny Oddity',
-    desc: 'Bichinho de pixel art que dança com a cara toda.',
+    desc: 'Bichinho de chifres coloridos que dança com a cara toda.',
     moveCount: 6,
+    frame: computeFrame,
     draw(ctx, st, s) {
       const f = computeFrame(s);
-      const shapes = buildShapes(f);
-      // O pé fica na linha 54 do canvas de pixels; o centro do corpo sobe conforme o squash.
-      const groundRow = 54;
-      const tf = { sx: f.sx, sy: f.sy, rot: f.rot, cx: SIZE / 2, cy: groundRow - 19 * f.sy - f.jump * 10 };
-      rasterize(shapes, tf);
-
-      const u = st.u;
-      let k = (7.5 * u) / SIZE;
-      if (k >= 2) k = Math.floor(k);
+      const k = (7.5 * st.u) / 64;
+      // Fundo dos pés no chão; o centro do corpo sobe com o squash e com o pulo.
+      const bx = st.cx + f.hipX * st.u;
+      const by = st.groundY - k * (23.6 * f.sy + f.jump * 10);
       st.shadow(f.hipX, 3.3 * Math.abs(f.sx), f.jump);
-      const dx = Math.round(st.cx + f.hipX * u - (SIZE / 2) * k);
-      const dy = Math.round(st.groundY + 0.1 * u - groundRow * k);
       ctx.save();
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(off, 0, 0, SIZE, SIZE, dx, dy, SIZE * k, SIZE * k);
+      ctx.translate(bx, by);
+      ctx.rotate(f.rot);
+      ctx.scale(k * f.sx, k * f.sy);
+      drawBody(ctx, f);
+      ctx.restore();
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.scale(k, k);
+      drawExtras(ctx, f);
       ctx.restore();
     },
   });
