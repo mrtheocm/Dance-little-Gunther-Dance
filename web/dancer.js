@@ -139,9 +139,12 @@
   }
 
   // Cada personagem recebe o mesmo "palco": origem no chão, no centro, unidade u.
-  function drawScene(ctx, width, height, s, character) {
-    const u = Math.min(width / 8.5, height / 11.5);
-    const groundY = height * 0.78;
+  // stageHeight e stageTop (opcionais) limitam o palco entre painéis da tela; o fundo continua ocupando tudo.
+  function drawScene(ctx, width, height, s, character, stageHeight = height, stageTop = 0) {
+    const sh = Math.min(height, stageHeight);
+    const groundY = sh * 0.78;
+    // Os personagens cabem em ~8 u acima do chão; encolhe se houver um painel em cima.
+    const u = Math.max(8, Math.min(width / 8.5, sh / 11.5, (groundY - stageTop) / 8.2));
     const cx = width / 2;
     drawBackground(ctx, width, height, groundY, u, s);
     const stage = {
