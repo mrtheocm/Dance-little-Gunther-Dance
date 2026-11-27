@@ -83,6 +83,52 @@
     #settings input[type=range] { width: 100%; }
     #settings small { opacity: .7; line-height: 1.4; }
     body.idle .footer, body.idle #settings { visibility: hidden; }
+    .sources { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 380px; }
+    .source { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 14px 18px;
+      border-radius: 18px; background: rgba(255,255,255,.12); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,.14); transition: transform .12s, background .12s; }
+    .source:hover { background: rgba(255,255,255,.18); }
+    .source:active { transform: scale(.98); }
+    .source b { font-size: 17px; }
+    .source span { font-size: 13px; opacity: .75; }
+    #start-button { background: #ff5fa2; color: #1a0a14; border-color: transparent; box-shadow: 0 8px 30px rgba(255,95,162,.4); }
+    #start-button span { opacity: .8; }
+
+    #player { width: 100%; max-width: 560px; padding: 10px 12px; border-radius: 18px; background: rgba(20,14,36,.78);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); display: flex; flex-direction: column; gap: 6px; }
+    .pl-row { display: flex; align-items: center; gap: 6px; }
+    .pl-btn { width: 38px; height: 38px; flex: none; border-radius: 50%; background: rgba(255,255,255,.1); font-size: 15px; }
+    .pl-btn.main { width: 46px; height: 46px; font-size: 18px; background: #ff5fa2; color: #1a0a14; }
+    .pl-btn:disabled { opacity: .35; }
+    .pl-info { flex: 1; min-width: 0; padding: 0 4px; }
+    #pl-title { font-weight: 800; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #pl-status { font-size: 12px; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pl-seek-row { display: flex; align-items: center; gap: 8px; font-size: 11px; font-variant-numeric: tabular-nums; opacity: .85; }
+    #pl-seek { flex: 1; accent-color: #ff5fa2; }
+    #pl-queue { margin: 4px 0 0; padding: 0 0 0 22px; max-height: 140px; overflow-y: auto; font-size: 13px; }
+    #pl-queue button { background: none; padding: 5px 0; text-align: left; width: 100%; opacity: .8; }
+    #pl-queue button[aria-current="true"] { opacity: 1; font-weight: 800; color: #ff8fc0; }
+
+    #linkbox { position: fixed; left: 50%; transform: translateX(-50%); top: calc(110px + env(safe-area-inset-top));
+      width: min(480px, calc(100% - 24px)); padding: 10px; border-radius: 18px; background: rgba(20,14,36,.85);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); display: flex; flex-direction: column; gap: 8px; z-index: 2; }
+    #link-form { display: flex; gap: 8px; }
+    #link-input { flex: 1; min-width: 0; font: inherit; font-size: 15px; color: #fff; padding: 10px 12px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.08); }
+    .btn.small { padding: 10px 16px; font-size: 14px; background: #ff5fa2; color: #1a0a14; }
+    #link-embed:empty { display: none; }
+    #link-embed iframe { display: block; width: 100%; border: 0; border-radius: 12px; }
+    #link-embed[data-kind="youtube"] iframe { width: min(100%, 300px); margin: 0 auto; aspect-ratio: 16 / 9; }
+    #link-embed[data-kind="soundcloud"] iframe { height: 166px; }
+    #linkbox.collapsed { width: auto; padding: 4px 6px; }
+    #linkbox.collapsed #link-embed { height: 1px; overflow: hidden; opacity: 0; margin-bottom: -9px; }
+    #linkbox.collapsed #link-form, #linkbox.collapsed #link-hint { display: none; }
+    .link-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    #link-hint { font-size: 12px; opacity: .75; line-height: 1.35; }
+    #link-hint.warn { color: #ffb0b0; opacity: 1; }
+    .link-collapse { background: none; font-size: 12px; font-weight: 700; opacity: .8; white-space: nowrap; }
+    #link-embed:empty ~ .link-foot .link-collapse { display: none; }
+
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -97,7 +143,38 @@
     <div class="badge"><span id="sync-dot" data-quality="off"></span><span id="sync-label">Pausado</span></div>
   </header>
 
+  <div id="linkbox" hidden>
+    <form id="link-form">
+      <input id="link-input" type="url" inputmode="url" autocomplete="off" placeholder="Cole um link do YouTube ou SoundCloud" aria-label="Link da música">
+      <button class="btn small" type="submit">Tocar</button>
+    </form>
+    <div id="link-embed"></div>
+    <div class="link-foot">
+      <small id="link-hint">O personagem ouve pelo microfone: use o alto-falante, não fone de ouvido.</small>
+      <button class="link-collapse" id="link-collapse" type="button">▴ Esconder player</button>
+    </div>
+  </div>
+
   <div class="footer">
+    <div id="player" hidden>
+      <div class="pl-row">
+        <button class="pl-btn" id="pl-prev" aria-label="Música anterior">⏮</button>
+        <button class="pl-btn main" id="pl-play" aria-label="Tocar">▶</button>
+        <button class="pl-btn" id="pl-next" aria-label="Próxima música">⏭</button>
+        <div class="pl-info">
+          <div id="pl-title">Nenhuma música</div>
+          <div id="pl-status"></div>
+        </div>
+        <button class="pl-btn" id="pl-list" aria-label="Lista de músicas">☰</button>
+        <button class="pl-btn" id="pl-add" aria-label="Adicionar músicas">＋</button>
+      </div>
+      <div class="pl-seek-row">
+        <span id="pl-cur">0:00</span>
+        <input type="range" id="pl-seek" min="0" max="1000" value="0" aria-label="Posição na música">
+        <span id="pl-dur">0:00</span>
+      </div>
+      <ol id="pl-queue" hidden></ol>
+    </div>
     <div class="bars">
       <div class="bar"><div class="track"><div class="fill" id="bar-bass"></div></div>GRAVE</div>
       <div class="bar"><div class="track"><div class="fill" id="bar-mid"></div></div>MÉDIO</div>
@@ -111,7 +188,7 @@
     <div class="controls">
       <button class="btn icon" id="settings-button" title="Ajustes" aria-label="Ajustes">⚙︎</button>
       <button class="btn" id="gallery-button"><span class="emoji">👾 </span>Personagens</button>
-      <button class="btn" id="pause-button" hidden>Pausar</button>
+      <button class="btn" id="pause-button" hidden>Trocar fonte</button>
       <button class="btn icon" id="fullscreen-button" title="Tela cheia" aria-label="Tela cheia">⛶</button>
     </div>
   </div>
@@ -123,9 +200,13 @@
   </div>
 
   <div id="start-overlay">
-    <p>O Gunther ouve a música pelo microfone e dança no ritmo. Nada é gravado nem enviado para lugar nenhum.</p>
+    <p>De onde vem a música? Nada é gravado nem enviado para lugar nenhum.</p>
     <p id="error" hidden></p>
-    <button class="btn primary" id="start-button">🎧 Começar a ouvir</button>
+    <div class="sources">
+      <button class="source" id="start-button"><b>🎤 Microfone</b><span>Para a balada: ouve o som do ambiente.</span></button>
+      <button class="source" id="src-file"><b>🎵 Minhas músicas</b><span>Arquivos do aparelho, com sincronia perfeita.</span></button>
+      <button class="source" id="src-link"><b>▶️ YouTube ou SoundCloud</b><span>Cole um link; o personagem ouve pelo microfone.</span></button>
+    </div>
     <button class="btn" id="start-gallery-button">👾 Escolher personagem: <span id="start-char-name">Gunther</span></button>
   </div>
 
@@ -139,7 +220,11 @@
     </div>
   </div>
 
+  <input type="file" id="file-input" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac" multiple hidden>
+
   <script src="beat.js"></script>
+  <script src="track.js"></script>
+  <script src="links.js"></script>
   <script src="dancer.js"></script>
   <script src="char-gunther.js"></script>
   <script src="char-oddity.js"></script>
