@@ -1,13 +1,13 @@
 {
   "name": "Gunther Dance",
   "short_name": "Gunther",
-  "description": "O Gunther ouve a música pelo microfone e dança no ritmo.",
+  "description": "Gunther listens to the music and dances to the beat.",
   "start_url": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#05050d",
   "theme_color": "#12082a",
-  "lang": "pt-BR",
+  "lang": "en",
   "icons": [
     { "src": "icon.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
   ]

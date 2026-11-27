@@ -29,6 +29,8 @@ jobs:
         run: node web/test/track-test.js
       - name: Testar links de YouTube e SoundCloud
         run: node web/test/links-test.js
+      - name: Testar traduções
+        run: node web/test/i18n-test.js
       - name: Testar pés batendo no chão no kick
         run: node web/test/sync-test.js
       - uses: actions/configure-pages@v5
