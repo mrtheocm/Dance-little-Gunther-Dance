@@ -4,7 +4,7 @@ App para iPhone que **ouve a música da balada pelo microfone**, detecta a batid
 
 - 100% nativo: SwiftUI + AVFoundation + Accelerate. Sem dependências externas, sem internet.
 - Análise em tempo real: FFT, fluxo espectral (com peso no grave/bumbo), detecção de onsets, autocorrelação para o BPM e um relógio de batidas que corrige a fase a cada bumbo.
-- O Gunther troca de passo a cada 8 batidas (passo lateral, mãos pra cima, twist, pulo, running man) e reage ao volume, ao grave e aos agudos. A pista e os holofotes pulsam junto.
+- Seis personagens, os mesmos da versão web: Gunther, Tiny Oddity, Zig, Glob, Cardume e Enxame. Troque pelas setas na tela ou deslizando o dedo sobre o palco. Cada um muda de passo a cada 8 batidas e reage ao volume, ao grave e aos agudos. A pista e os holofotes pulsam junto.
 - iOS 17 ou mais novo.
 
 ## Versão web (mais fácil: sem instalar nada)
@@ -79,7 +79,13 @@ GuntherDance/
 │   └── BeatDetector.swift       FFT, onsets, BPM e relógio de batidas
 └── Dancer/
     ├── DanceState.swift         Estado compartilhado entre áudio e tela
-    └── DancerView.swift         Canvas com o Gunther, pista e holofotes
+    ├── Stage.swift              Palco, fundo, utilidades de desenho e lista de personagens
+    ├── DancerView.swift         Canvas que desenha o personagem escolhido a cada quadro
+    ├── GuntherCharacter.swift   Gunther (8 passos)
+    ├── OddityCharacter.swift    Tiny Oddity, rasterizado em pixel art 64x64
+    ├── InsectCharacter.swift    Zig, o inseto
+    ├── AmoebaCharacter.swift    Glob, a ameba
+    └── SwarmCharacter.swift     Cardume e Enxame (formações)
 ```
 
 ## Ajustes finos
