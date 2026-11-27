@@ -7,7 +7,19 @@ App para iPhone que **ouve a música da balada pelo microfone**, detecta a batid
 - O Gunther troca de passo a cada 8 batidas (passo lateral, mãos pra cima, twist, pulo, running man) e reage ao volume, ao grave e aos agudos. A pista e os holofotes pulsam junto.
 - iOS 17 ou mais novo.
 
-## Como instalar no seu iPhone
+## Versão web (mais fácil: sem instalar nada)
+
+A pasta `web/` tem a mesma coisa em HTML, CSS e JavaScript puro, publicada automaticamente no GitHub Pages a cada push:
+
+**https://mrtheocm.github.io/Dance-little-Gunther-Dance/**
+
+- Funciona no Safari e no Firefox do iPhone, e em qualquer navegador de computador (Chrome, Firefox, Edge, Safari).
+- Abra o link, toque em **Começar a ouvir** e permita o microfone. Nada é gravado nem enviado.
+- No iPhone, pelo Safari, use **Compartilhar → Adicionar à Tela de Início** para ter um ícone como app.
+- Na engrenagem há um ajuste de **sincronia** (em ms) caso o Gunther pareça atrasado ou adiantado nesse navegador. O valor fica salvo.
+- Teste offline do detector: `node web/test/beat-test.js`.
+
+## Como instalar o app nativo no seu iPhone
 
 ### Opção A: com um Mac e Xcode (recomendado)
 
@@ -40,6 +52,14 @@ A tela fica ligada enquanto o app está aberto. Ao sair do app, o microfone é d
 ## Estrutura
 
 ```
+web/
+├── index.html                   Página, estilos e HUD
+├── app.js                       Microfone (Web Audio), estado e controles
+├── beat.js                      FFT, onsets, BPM e relógio de batidas (mesma lógica do Swift)
+├── dancer.js                    Canvas com o Gunther, pista e holofotes
+├── worklet.js                   AudioWorklet que entrega o áudio em mono
+└── test/beat-test.js            Teste com bumbo sintético em vários BPMs
+
 GuntherDance/
 ├── GuntherDanceApp.swift        Entrada do app
 ├── ContentView.swift            Tela principal: HUD de BPM, barras de nível e controles

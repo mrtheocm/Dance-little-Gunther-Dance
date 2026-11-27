@@ -220,9 +220,9 @@ final class BeatDetector {
         bassMax = max(b.energy, bassMax * 0.9995, 1e-6)
         midMax = max(m.energy, midMax * 0.9995, 1e-6)
         highMax = max(h.energy, highMax * 0.9995, 1e-6)
-        bass = max(min(1, sqrt(b.energy / bassMax)), bass * 0.82)
-        mid = max(min(1, sqrt(m.energy / midMax)), mid * 0.82)
-        high = max(min(1, sqrt(h.energy / highMax)), high * 0.82)
+        bass = max(min(1, sqrt(b.energy / bassMax)), bass * 0.9)
+        mid = max(min(1, sqrt(m.energy / midMax)), mid * 0.9)
+        high = max(min(1, sqrt(h.energy / highMax)), high * 0.9)
 
         // Função de detecção de onset, com peso maior no grave (bumbo).
         let odfValue = b.flux * 1.0 + m.flux * 0.5 + h.flux * 0.25

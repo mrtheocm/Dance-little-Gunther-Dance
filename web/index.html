@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Gunther Dance</title>
+  <meta name="description" content="O Gunther ouve a música pelo microfone e dança no ritmo.">
+  <meta name="theme-color" content="#12082a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Gunther">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="icon" href="icon.png">
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #05050d; color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+    #stage { position: fixed; inset: 0; display: block; }
+    .hud { position: fixed; left: 0; right: 0; padding: calc(16px + env(safe-area-inset-top)) 20px 0;
+      display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none;
+      text-shadow: 0 2px 8px rgba(0,0,0,.6); }
+    .hud > * { pointer-events: auto; }
+    .brand { font-size: 11px; font-weight: 800; letter-spacing: 4px; opacity: .7; }
+    .bpm-row { display: flex; align-items: baseline; gap: 6px; }
+    #bpm { font-size: 52px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
+    .bpm-unit { font-weight: 700; opacity: .7; }
+    .badge { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px;
+      background: rgba(255,255,255,.12); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      font-size: 13px; font-weight: 600; }
+    #sync-dot { width: 9px; height: 9px; border-radius: 50%; background: #888; box-shadow: 0 0 6px #888; }
+    #sync-dot[data-quality="locking"] { background: #ffd23f; box-shadow: 0 0 8px #ffd23f; }
+    #sync-dot[data-quality="locked"] { background: #45e07a; box-shadow: 0 0 8px #45e07a; }
+    .footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 0 20px calc(20px + env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .bars { display: flex; gap: 18px; }
+    .bar { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 9px; font-weight: 800; opacity: .8; }
+    .track { width: 14px; height: 56px; border-radius: 999px; background: rgba(255,255,255,.12); position: relative; overflow: hidden; }
+    .fill { position: absolute; left: 0; right: 0; bottom: 0; height: 8%; border-radius: 999px; }
+    #bar-bass { background: #ff5a80; box-shadow: 0 0 8px #ff5a80; }
+    #bar-mid { background: #ffd94d; box-shadow: 0 0 8px #ffd94d; }
+    #bar-high { background: #66e5ff; box-shadow: 0 0 8px #66e5ff; }
+    .controls { display: flex; gap: 10px; align-items: center; }
+    button { font: inherit; color: #fff; border: 0; cursor: pointer; }
+    .btn { padding: 12px 20px; border-radius: 999px; font-weight: 700; font-size: 15px;
+      background: rgba(255,255,255,.14); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    .btn.primary { background: #ff5fa2; color: #1a0a14; font-size: 18px; padding: 16px 28px; box-shadow: 0 8px 30px rgba(255,95,162,.45); }
+    .btn.icon { width: 44px; height: 44px; padding: 0; display: grid; place-items: center; font-size: 20px; }
+    #start-overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+      padding: 24px 24px calc(48px + env(safe-area-inset-bottom)); gap: 14px; text-align: center;
+      background: linear-gradient(to top, rgba(5,5,13,.95) 0%, rgba(5,5,13,.6) 45%, rgba(5,5,13,0) 100%); }
+    #start-overlay p { max-width: 360px; margin: 0; opacity: .85; font-size: 15px; line-height: 1.4; }
+    #error { max-width: 360px; margin: 0; padding: 12px 14px; border-radius: 12px; background: rgba(255,80,80,.18);
+      border: 1px solid rgba(255,80,80,.5); font-size: 14px; line-height: 1.4; }
+    #settings { position: fixed; right: 20px; bottom: calc(96px + env(safe-area-inset-bottom)); width: 260px; padding: 16px;
+      border-radius: 16px; background: rgba(20,14,36,.9); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+    #settings label { display: flex; justify-content: space-between; font-weight: 600; }
+    #settings input[type=range] { width: 100%; }
+    #settings small { opacity: .7; line-height: 1.4; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <canvas id="stage"></canvas>
+
+  <header class="hud">
+    <div>
+      <div class="brand">GUNTHER</div>
+      <div class="bpm-row"><span id="bpm">—</span><span class="bpm-unit">BPM</span></div>
+    </div>
+    <div class="badge"><span id="sync-dot" data-quality="off"></span><span id="sync-label">Pausado</span></div>
+  </header>
+
+  <div class="footer">
+    <div class="bars">
+      <div class="bar"><div class="track"><div class="fill" id="bar-bass"></div></div>GRAVE</div>
+      <div class="bar"><div class="track"><div class="fill" id="bar-mid"></div></div>MÉDIO</div>
+      <div class="bar"><div class="track"><div class="fill" id="bar-high"></div></div>AGUDO</div>
+    </div>
+    <div class="controls">
+      <button class="btn icon" id="settings-button" title="Ajustes" aria-label="Ajustes">⚙︎</button>
+      <button class="btn" id="pause-button" hidden>Pausar</button>
+      <button class="btn icon" id="fullscreen-button" title="Tela cheia" aria-label="Tela cheia">⛶</button>
+    </div>
+  </div>
+
+  <div id="settings" hidden>
+    <label>Sincronia <span id="offset-value">0 ms</span></label>
+    <input type="range" id="offset" min="-200" max="200" step="10" value="0">
+    <small>Se o Gunther parecer atrasado em relação à música, aumente. Se estiver adiantado, diminua.</small>
+  </div>
+
+  <div id="start-overlay">
+    <p>O Gunther ouve a música pelo microfone e dança no ritmo. Nada é gravado nem enviado para lugar nenhum.</p>
+    <p id="error" hidden></p>
+    <button class="btn primary" id="start-button">🎧 Começar a ouvir</button>
+  </div>
+
+  <script src="beat.js"></script>
+  <script src="dancer.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
