@@ -36,6 +36,7 @@ fileprivate struct Pose {
 final class GuntherCharacter: DanceCharacter {
     let id = "gunther"
     let name = "Gunther"
+    let summary = "O dançarino da balada. Oito passos, do running man ao headbang."
     let moveCount = 8
 
     private func pose(_ f: BeatFrame) -> Pose {

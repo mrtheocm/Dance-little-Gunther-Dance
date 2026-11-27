@@ -4,6 +4,7 @@ import SwiftUI
 final class AmoebaCharacter: DanceCharacter {
     let id = "amoeba"
     let name = "Glob"
+    let summary = "Ameba gelatinosa que pulsa com o grave."
     let moveCount = 5
 
     private func bump(_ theta: Double, _ center: Double, _ width: Double) -> Double {

@@ -21,6 +21,9 @@
   const offsetValue = $('offset-value');
   const fullscreenButton = $('fullscreen-button');
   const charName = $('char-name');
+  const startCharName = $('start-char-name');
+  const gallery = $('gallery');
+  const galleryGrid = $('gallery-grid');
 
   const now = () => performance.now() / 1000;
 
@@ -48,17 +51,77 @@
     showOffset();
   });
 
+  // Galeria: um cartão por personagem, com uma miniatura dançando ao vivo.
+  const cards = characters.map((c, i) => {
+    const button = document.createElement('button');
+    button.className = 'card';
+    button.setAttribute('aria-pressed', 'false');
+    const thumb = document.createElement('canvas');
+    const title = document.createElement('strong');
+    title.textContent = c.name;
+    const desc = document.createElement('span');
+    desc.textContent = c.desc || '';
+    button.append(thumb, title, desc);
+    button.addEventListener('click', () => { setCharacter(i); closeGallery(); });
+    galleryGrid.appendChild(button);
+    return { button, thumb, ctx: thumb.getContext('2d'), character: c };
+  });
+
+  function openGallery() {
+    gallery.hidden = false;
+    settingsPanel.hidden = true;
+    const current = cards[charIndex];
+    if (current) current.button.focus({ preventScroll: true });
+  }
+  function closeGallery() { gallery.hidden = true; }
+  $('gallery-button').addEventListener('click', openGallery);
+  $('start-gallery-button').addEventListener('click', openGallery);
+  charName.addEventListener('click', openGallery);
+  $('gallery-close').addEventListener('click', closeGallery);
+  gallery.addEventListener('click', (e) => { if (e.target === gallery) closeGallery(); });
+
+  // Sem música, as miniaturas dançam num ritmo de demonstração a 120 BPM.
+  function demoState(t) {
+    const period = 0.5;
+    const whole = Math.floor(t / period);
+    const pulse = 0.5 * (1 + Math.cos(2 * Math.PI * (t / period - whole)));
+    return {
+      level: 0.65, bass: 0.4 + 0.5 * pulse, mid: 0.5, high: 0.4, bpm: 120,
+      hasBeat: true, beatPeriod: period, lastBeatTime: whole * period, beatCount: whole,
+      confidence: 1, isSilent: false, lastOnsetTime: whole * period,
+    };
+  }
+
+  function drawThumbnails(dpr) {
+    const t = now();
+    const live = running && state.hasBeat && !state.isSilent;
+    const src = live ? state : demoState(t);
+    for (const card of cards) {
+      const w = card.thumb.clientWidth, h = card.thumb.clientHeight;
+      if (!w || !h) continue;
+      const pw = Math.floor(w * dpr), ph = Math.floor(h * dpr);
+      if (card.thumb.width !== pw || card.thumb.height !== ph) { card.thumb.width = pw; card.thumb.height = ph; }
+      card.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const scene = computeScene(src, t, performance.now() / 1000, live ? 0.06 : 0, card.character.moveCount);
+      drawScene(card.ctx, w, h, scene, card.character);
+    }
+  }
+
   // Personagem escolhido, salvo no navegador.
   let charIndex = 0;
   function setCharacter(i) {
     charIndex = ((i % characters.length) + characters.length) % characters.length;
     charName.textContent = characters[charIndex].name;
+    startCharName.textContent = characters[charIndex].name;
+    cards.forEach((card, j) => card.button.setAttribute('aria-pressed', String(j === charIndex)));
     localStorage.setItem('gunther-character', characters[charIndex].id);
   }
   setCharacter(Math.max(0, characters.findIndex((c) => c.id === localStorage.getItem('gunther-character'))));
   $('prev-char').addEventListener('click', () => setCharacter(charIndex - 1));
   $('next-char').addEventListener('click', () => setCharacter(charIndex + 1));
   window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !gallery.hidden) { closeGallery(); return; }
+    if (!gallery.hidden) return;
     if (e.key === 'ArrowLeft') setCharacter(charIndex - 1);
     if (e.key === 'ArrowRight') setCharacter(charIndex + 1);
   });
@@ -115,6 +178,7 @@
     const character = characters[charIndex];
     const scene = computeScene(state, now(), performance.now() / 1000, baseLead + userOffsetMs / 1000, character.moveCount);
     drawScene(ctx, window.innerWidth, window.innerHeight, scene, character);
+    if (!gallery.hidden) drawThumbnails(dpr);
     updateHud();
     requestAnimationFrame(frame);
   }
@@ -169,6 +233,7 @@
 
       running = true;
       startOverlay.hidden = true;
+      document.body.classList.remove('idle');
       pauseButton.hidden = false;
       try {
         if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen');
@@ -191,7 +256,10 @@
     state.hasBeat = false; state.isSilent = true; state.bpm = 0;
     state.level = 0; state.bass = 0; state.mid = 0; state.high = 0;
     pauseButton.hidden = true;
-    if (showStart) startOverlay.hidden = false;
+    if (showStart) {
+      startOverlay.hidden = false;
+      document.body.classList.add('idle');
+    }
   }
 
   startButton.addEventListener('click', start);
@@ -214,5 +282,6 @@
   });
 
   // Ganchos para testes automatizados.
-  window.__gunther = { state, start, stop, isRunning: () => running, setCharacter, characters };
+  window.__gunther = { state, start, stop, isRunning: () => running, setCharacter, characters,
+    openGallery, closeGallery, current: () => characters[charIndex].id };
 })();

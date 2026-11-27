@@ -4,6 +4,7 @@ import UIKit
 struct ContentView: View {
     @StateObject private var analyzer = AudioAnalyzer()
     @StateObject private var characters = CharacterStore()
+    @State private var showGallery = false
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -14,9 +15,14 @@ struct ContentView: View {
             VStack {
                 BeatHUD(state: analyzer.dance)
                 Spacer()
-                StatusFooter(analyzer: analyzer, state: analyzer.dance, characters: characters)
+                StatusFooter(analyzer: analyzer, state: analyzer.dance, characters: characters) {
+                    showGallery = true
+                }
             }
             .padding(20)
+        }
+        .sheet(isPresented: $showGallery) {
+            CharacterGallery(store: characters, state: analyzer.dance)
         }
         .task { await analyzer.start() }
         .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
@@ -106,11 +112,12 @@ struct StatusFooter: View {
     @ObservedObject var analyzer: AudioAnalyzer
     @ObservedObject var state: DanceState
     @ObservedObject var characters: CharacterStore
+    let openGallery: () -> Void
 
     var body: some View {
         VStack(spacing: 16) {
             LevelBars(state: state)
-            CharacterPicker(store: characters)
+            CharacterPicker(store: characters, openGallery: openGallery)
             controls
         }
     }
@@ -215,16 +222,26 @@ struct LevelBars: View {
 
 struct CharacterPicker: View {
     @ObservedObject var store: CharacterStore
+    let openGallery: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
             arrow("chevron.left", label: "Personagem anterior") { store.previous() }
-            Text(store.current.name)
+            Button(action: openGallery) {
+                HStack(spacing: 8) {
+                    Image(systemName: "square.grid.2x2.fill")
+                    Text(store.current.name)
+                        .tracking(1)
+                        .contentTransition(.opacity)
+                        .animation(.easeInOut(duration: 0.15), value: store.index)
+                }
                 .font(.subheadline.weight(.heavy))
-                .tracking(1)
-                .frame(minWidth: 130)
-                .contentTransition(.opacity)
-                .animation(.easeInOut(duration: 0.15), value: store.index)
+                .frame(minWidth: 150)
+                .padding(.vertical, 10)
+                .padding(.horizontal, 14)
+                .background(.ultraThinMaterial, in: Capsule())
+            }
+            .accessibilityLabel("Escolher personagem. Atual: \(store.current.name)")
             arrow("chevron.right", label: "Próximo personagem") { store.next() }
         }
         .foregroundStyle(.white)

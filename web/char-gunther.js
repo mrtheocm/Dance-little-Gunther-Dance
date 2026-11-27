@@ -157,6 +157,7 @@
   register({
     id: 'gunther',
     name: 'Gunther',
+    desc: 'O dançarino da balada. Oito passos, do running man ao headbang.',
     moveCount: 8,
     draw(ctx, st, s) {
       const { u } = st;

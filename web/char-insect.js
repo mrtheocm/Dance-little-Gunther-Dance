@@ -7,6 +7,7 @@
   register({
     id: 'insect',
     name: 'Zig',
+    desc: 'Inseto de seis pernas com braços de louva-a-deus.',
     moveCount: 5,
     draw(ctx, st, s) {
       const { u } = st;

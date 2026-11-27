@@ -4,7 +4,7 @@ App para iPhone que **ouve a música da balada pelo microfone**, detecta a batid
 
 - 100% nativo: SwiftUI + AVFoundation + Accelerate. Sem dependências externas, sem internet.
 - Análise em tempo real: FFT, fluxo espectral (com peso no grave/bumbo), detecção de onsets, autocorrelação para o BPM e um relógio de batidas que corrige a fase a cada bumbo.
-- Seis personagens, os mesmos da versão web: Gunther, Tiny Oddity, Zig, Glob, Cardume e Enxame. Troque pelas setas na tela ou deslizando o dedo sobre o palco. Cada um muda de passo a cada 8 batidas e reage ao volume, ao grave e aos agudos. A pista e os holofotes pulsam junto.
+- Seis personagens, os mesmos da versão web: Gunther, Tiny Oddity, Zig, Glob, Cardume e Enxame. Escolha na galeria tocando no nome do personagem, ou troque pelas setas e deslizando o dedo sobre o palco. Cada um muda de passo a cada 8 batidas e reage ao volume, ao grave e aos agudos. A pista e os holofotes pulsam junto.
 - iOS 17 ou mais novo.
 
 ## Versão web (mais fácil: sem instalar nada)
@@ -16,7 +16,7 @@ A pasta `web/` tem a mesma coisa em HTML, CSS e JavaScript puro, publicada autom
 - Funciona no Safari e no Firefox do iPhone, e em qualquer navegador de computador (Chrome, Firefox, Edge, Safari).
 - Abra o link, toque em **Começar a ouvir** e permita o microfone. Nada é gravado nem enviado.
 - No iPhone, pelo Safari, use **Compartilhar → Adicionar à Tela de Início** para ter um ícone como app.
-- **Seis personagens**, trocados pelas setas na tela, deslizando o dedo sobre o palco ou com as setas do teclado:
+- **Seis personagens**. Toque em **Personagens** (ou no nome do personagem atual) para abrir a galeria, com cada um dançando ao vivo, e toque no cartão para escolher. Também dá para trocar pelas setas, deslizando o dedo sobre o palco ou com as setas do teclado:
   - **Gunther**, o humano, com 8 passos (passo lateral, mãos pra cima, twist, pulo, running man, disco, headbang e onda).
   - **Tiny Oddity**, o bichinho de pixel art: como é quase só rosto, dança com squash & stretch, pulinhos, giro e expressões (olhos no ritmo, felizes, de estrela no grave forte, piscadinha, surpresa e dormindo no silêncio).
   - **Zig**, inseto com seis pernas em onda, antenas e braços de louva-a-deus.
@@ -81,6 +81,7 @@ GuntherDance/
     ├── DanceState.swift         Estado compartilhado entre áudio e tela
     ├── Stage.swift              Palco, fundo, utilidades de desenho e lista de personagens
     ├── DancerView.swift         Canvas que desenha o personagem escolhido a cada quadro
+    ├── CharacterGallery.swift   Galeria para escolher o personagem, com miniaturas dançando
     ├── GuntherCharacter.swift   Gunther (8 passos)
     ├── OddityCharacter.swift    Tiny Oddity, rasterizado em pixel art 64x64
     ├── InsectCharacter.swift    Zig, o inseto

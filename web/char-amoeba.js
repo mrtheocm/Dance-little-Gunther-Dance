@@ -14,6 +14,7 @@
   register({
     id: 'amoeba',
     name: 'Glob',
+    desc: 'Ameba gelatinosa que pulsa com o grave.',
     moveCount: 5,
     draw(ctx, st, s) {
       const { u } = st;
