@@ -19,15 +19,15 @@
     draw(ctx, st, s) {
       const { u } = st;
       const t = s.wallTime;
-      const { pulse, sway, swayMid, phase: ph, beatFrac } = s;
+      const { pulse, sway, swayMid, beatFrac } = s;
       const amp = 0.6 + 0.4 * s.energy;
-      const arc = 4 * ph * (1 - ph);
+      const { hop, land, stretch } = s;
 
       let cx = 0, sx = 1, sy = 1, jump = 0, roll = 0, armL = 0, armR = 0, scale = 1, happy = 0;
       if (s.dancing) {
         switch (s.moveIndex) {
           case 0: // pulsar
-            scale = 1 + 0.18 * pulse * (0.5 + 0.5 * s.bass) * amp;
+            scale = 1 + 0.18 * (0.6 * land + 0.4 * pulse) * (0.5 + 0.5 * s.bass) * amp;
             happy = pulse;
             break;
           case 1: // estica e achata
@@ -45,11 +45,11 @@
             roll = (Math.PI * beatFrac) / 4;
             sy = 1 - 0.08 * pulse;
             break;
-          default: // pulo de gelatina
-            jump = 0.9 * arc * amp;
-            sy = 1 + 0.3 * arc - 0.25 * pulse;
-            sx = 1 - 0.15 * arc + 0.2 * pulse;
-            happy = arc;
+          default: // pulo de gelatina: estica no ar, esparrama ao pousar no kick
+            jump = 0.9 * hop * amp;
+            sy = 1 + 0.25 * stretch - 0.3 * land;
+            sx = 1 - 0.12 * stretch + 0.28 * land;
+            happy = hop;
         }
       } else {
         scale = 1 + 0.03 * Math.sin(t * 1.2);

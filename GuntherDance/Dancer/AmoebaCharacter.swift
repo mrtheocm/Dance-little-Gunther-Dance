@@ -18,9 +18,9 @@ final class AmoebaCharacter: DanceCharacter {
     func draw(_ ctx: inout GraphicsContext, stage st: Stage, frame s: BeatFrame) {
         let u = st.u
         let t = s.wallTime
-        let pulse = s.pulse, sway = s.sway, swayMid = s.swayMid, ph = s.phase
+        let pulse = s.pulse, sway = s.sway, swayMid = s.swayMid
+        let hop = s.hop, land = s.land, stretch = s.stretch
         let amp = 0.6 + 0.4 * s.energy
-        let arc = 4 * ph * (1 - ph)
 
         var cx = 0.0, sx = 1.0, sy = 1.0, jump = 0.0, roll = 0.0
         var armL = 0.0, armR = 0.0, scale = 1.0, happy = 0.0
@@ -28,7 +28,7 @@ final class AmoebaCharacter: DanceCharacter {
         if s.dancing {
             switch s.moveIndex {
             case 0: // pulsar
-                scale = 1 + 0.18 * pulse * (0.5 + 0.5 * s.bass) * amp
+                scale = 1 + 0.18 * (0.6 * land + 0.4 * pulse) * (0.5 + 0.5 * s.bass) * amp
                 happy = pulse
             case 1: // estica e achata
                 sx = 1 + 0.35 * sway * amp
@@ -43,11 +43,11 @@ final class AmoebaCharacter: DanceCharacter {
                 cx = 1.8 * sin(.pi * s.beatFrac / 4) * amp
                 roll = .pi * s.beatFrac / 4
                 sy = 1 - 0.08 * pulse
-            default: // pulo de gelatina
-                jump = 0.9 * arc * amp
-                sy = 1 + 0.3 * arc - 0.25 * pulse
-                sx = 1 - 0.15 * arc + 0.2 * pulse
-                happy = arc
+            default: // pulo de gelatina: estica no ar, esparrama ao pousar no kick
+                jump = 0.9 * hop * amp
+                sy = 1 + 0.25 * stretch - 0.3 * land
+                sx = 1 - 0.12 * stretch + 0.28 * land
+                happy = hop
             }
         } else {
             scale = 1 + 0.03 * sin(t * 1.2)

@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const { register, util } = window.GuntherDancer;
-  const { hsl, ellipse, strokePoints, frac } = util;
+  const { hsl, ellipse, strokePoints } = util;
 
   register({
     id: 'insect',
@@ -12,52 +12,55 @@
     draw(ctx, st, s) {
       const { u } = st;
       const P = (x, y) => st.pt(x, y);
-      const { pulse, sway, swayMid, phase: ph, beatFrac } = s;
+      const { pulse, sway, swayMid } = s;
       const amp = 0.6 + 0.4 * s.energy;
-      const arc = 4 * ph * (1 - ph);
       const t = s.wallTime;
 
-      let hipX = 0, dip = 0, jump = 0, wag = 0, headTilt = 0, legSpeed = 0.5, legLift = 0.5, tuck = 0;
+      const { hop, land } = s;
+      const bounce = 0.6 * land + 0.4 * pulse;
+      // stepLift: quanto as pernas do tripé ativo sobem entre as batidas (pousam no kick).
+      let hipX = 0, dip = 0, jump = 0, wag = 0, headTilt = 0, stepLift = 0, tuck = 0;
       let armA = 1.0, armBend = 2.4;
       if (!s.dancing) {
         hipX = 0.05 * Math.sin(t * 0.8);
         wag = 0.08 * Math.sin(t * 1.1);
         headTilt = 0.1 * Math.sin(t * 0.6);
-        legSpeed = 0; legLift = 0;
         armBend = 2.4 + 0.1 * Math.sin(t * 1.3);
       } else {
         switch (s.moveIndex) {
-          case 0: // onda nas pernas, bracinhos rezando
-            dip = 0.25 * pulse * amp;
+          case 0: // marcha de tripé, bracinhos rezando
+            stepLift = 0.6;
+            dip = 0.25 * bounce * amp;
             armBend = 2.4 - 0.6 * pulse;
             wag = 0.1 * swayMid;
             break;
           case 1: // corridinha de lado
             hipX = 0.9 * sway * amp;
-            legSpeed = 1; legLift = 0.7;
-            dip = 0.15 * pulse;
+            stepLift = 0.8;
+            dip = 0.15 * land;
             headTilt = -0.15 * sway;
             armA = 0.8; armBend = 2.0 + 0.3 * swayMid;
             break;
-          case 2: // braços pra cima
+          case 2: // braços pra cima, pisando no kick
+            stepLift = 0.35;
             armA = 2.6 + 0.15 * sway;
             armBend = 0.3 + 0.5 * pulse;
-            dip = 0.3 * pulse * amp;
+            dip = 0.3 * bounce * amp;
             wag = 0.15 * sway;
             break;
           case 3: // rebolado do abdômen
+            stepLift = 0.35;
             wag = 0.45 * swayMid * amp;
             headTilt = -0.25 * swayMid;
             hipX = 0.2 * sway;
-            dip = 0.1 * pulse;
+            dip = 0.1 * bounce;
             armA = 1.4; armBend = 1.6 + 0.4 * sway;
             break;
-          default: // pulinho com pernas encolhidas
-            jump = 0.8 * arc * amp;
-            tuck = arc;
-            dip = 0.3 * pulse;
-            armA = 1.2 + 1.2 * arc; armBend = 2.2 - 1.5 * arc;
-            legLift = 0;
+          default: // pulinho com pernas encolhidas, pousando no kick
+            jump = 0.8 * hop * amp;
+            tuck = hop;
+            dip = 0.35 * land;
+            armA = 1.2 + 1.2 * hop; armBend = 2.2 - 1.5 * hop;
         }
       }
       const baseY = jump - dip;
@@ -66,16 +69,19 @@
 
       st.shadow(hipX, 2.8, jump);
 
-      // Pernas: três pares, cada uma com fase própria.
+      // Pernas: marcha de tripé, como os insetos de verdade. Em cada batida um tripé
+      // (frente e trás de um lado, meio do outro) sobe e pousa no kick seguinte.
       const attach = [[0.7, 3.0], [0.8, 2.3], [0.7, 1.6]];
       for (let k = 0; k < 3; k++) {
         for (const side of [-1, 1]) {
-          const legPhase = frac(beatFrac * legSpeed + k / 3 + (side > 0 ? 0.5 : 0));
-          const lift = legLift * Math.pow(Math.max(0, Math.sin(2 * Math.PI * legPhase)), 2) + 0.9 * tuck;
+          const tripodA = (k === 1) === (side > 0);
+          const active = s.rightStep ? tripodA : !tripodA;
+          const step = active ? hop : 0;
+          const lift = stepLift * step + 0.9 * tuck;
           const ax = hipX + side * attach[k][0], ay = attach[k][1] + baseY;
           const kneeX = ax + side * (1.0 + 0.25 * k) * (1 - 0.4 * tuck);
           const kneeY = ay + 0.55 + 0.3 * lift;
-          const footX = kneeX + side * (0.55 - 0.2 * tuck) + 0.15 * Math.sin(2 * Math.PI * legPhase) * side;
+          const footX = kneeX + side * (0.55 - 0.2 * tuck) + side * 0.15 * stepLift * step;
           const footY = Math.max(0, lift + 0.6 * tuck + (jump > 0 ? jump * 0.5 : 0));
           strokePoints(ctx, [P(ax, ay), P(kneeX, kneeY), P(footX, footY)], legColor, 0.17 * u);
           const [fx, fy] = P(footX, footY);

@@ -1,15 +1,19 @@
 import SwiftUI
 
 /// Cardume e Enxame: muitos bichinhos dançando em formação.
-/// Cada um persegue seu lugar na formação com uma molinha, o que dá um movimento orgânico.
+/// Cada um fica exatamente no seu lugar da formação, para o ritmo não atrasar.
+/// Uma molinha só suaviza os saltos quando a formação muda.
 final class SwarmCharacter: DanceCharacter {
     enum Kind { case fish, bees }
 
     private struct Agent {
         var x: Double
         var y: Double
-        var vx = 0.0
-        var vy = 0.0
+        /// Desvio em relação ao lugar na formação, que vai sumindo depois de uma troca de formação.
+        var ox = 0.0
+        var oy = 0.0
+        var ovx = 0.0
+        var ovy = 0.0
         var heading = 0.0
     }
 
@@ -21,6 +25,7 @@ final class SwarmCharacter: DanceCharacter {
     private let count: Int
     private var agents: [Agent] = []
     private var lastTime: Double?
+    private var lastKey: Int?
 
     init(kind: Kind) {
         self.kind = kind
@@ -60,8 +65,8 @@ final class SwarmCharacter: DanceCharacter {
         case 2: // oito deitado
             let a = q * tau + tau * f.beatFrac / 8
             return (2.8 * sin(a) + shift, 3.3 + 1.4 * sin(2 * a))
-        case 3: // colunas quicando
-            return ((q - 0.5) * 6.8 + shift, 0.8 + 2.8 * abs(sin(.pi * (f.beatFrac + q))))
+        case 3: // colunas quicando: todas batem no fundo juntas no kick, cada uma numa altura
+            return ((q - 0.5) * 6.8 + shift, 0.8 + 2.8 * (0.65 + 0.35 * sin(q * tau * 2)) * f.hop)
         default: // coração pulsando
             let a = q * tau
             let k = 0.14 * (1 + 0.18 * f.pulse)
@@ -76,16 +81,28 @@ final class SwarmCharacter: DanceCharacter {
         let dt = lastTime.map { min(0.05, max(0, f.wallTime - $0)) } ?? 0.016
         lastTime = f.wallTime
 
-        let stiffness = 45.0, damping = 9.0
+        let key = f.dancing ? f.moveIndex : -1
+        let changed = key != lastKey
+        lastKey = key
+        let stiffness = 45.0, damping = 13.0
         for i in agents.indices {
             let (tx, ty) = target(Double(i) / Double(count), f)
             var a = agents[i]
-            a.vx += ((tx - a.x) * stiffness - a.vx * damping) * dt
-            a.vy += ((ty - a.y) * stiffness - a.vy * damping) * dt
-            a.x += a.vx * dt
-            a.y += a.vy * dt
-            if hypot(a.vx, a.vy) > 0.3 {
-                var d = atan2(a.vy, a.vx) - a.heading
+            let px = a.x, py = a.y
+            if changed {
+                a.ox = px - tx
+                a.oy = py - ty
+            }
+            a.ovx += (-a.ox * stiffness - a.ovx * damping) * dt
+            a.ovy += (-a.oy * stiffness - a.ovy * damping) * dt
+            a.ox += a.ovx * dt
+            a.oy += a.ovy * dt
+            a.x = tx + a.ox
+            a.y = ty + a.oy
+            let vx = dt > 0 ? (a.x - px) / dt : 0
+            let vy = dt > 0 ? (a.y - py) / dt : 0
+            if hypot(vx, vy) > 0.3 {
+                var d = atan2(vy, vx) - a.heading
                 d = (d + .pi).truncatingRemainder(dividingBy: 2 * .pi)
                 if d < 0 { d += 2 * .pi }
                 d -= .pi

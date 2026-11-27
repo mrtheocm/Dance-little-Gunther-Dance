@@ -23,7 +23,8 @@ A pasta `web/` tem a mesma coisa em HTML, CSS e JavaScript puro, publicada autom
   - **Glob**, ameba de contorno vivo, com pseudópodes e um núcleo com carinha.
   - **Cardume** e **Enxame**, peixes e abelhas dançando em formação (roda, onda, oito, colunas e coração).
 - Na engrenagem há um ajuste de **sincronia** (em ms) caso o Gunther pareça atrasado ou adiantado nesse navegador. O valor fica salvo.
-- Teste offline do detector: `node web/test/beat-test.js`.
+- Testes offline: `node web/test/beat-test.js` (detector de batida) e `node web/test/sync-test.js` (os pés do Gunther tocam o chão exatamente no kick, em todos os passos).
+- **Sincronia com o kick:** logo depois de cada kick há uma janela curta de contato com o chão; os pulos e passos acontecem no resto da batida e pousam exatamente no kick seguinte, amassando só depois de tocar o chão. As pernas do Gunther usam cinemática inversa para o pé apoiado tocar o chão de verdade, e o Zig marcha em tripé, como os insetos.
 
 ## Como instalar o app nativo no seu iPhone
 

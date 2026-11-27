@@ -7,7 +7,7 @@ fileprivate enum MouthKind { case smile, open, o, flat }
 /// Estado de um quadro do Oddity: deformação do corpo e expressão do rosto.
 fileprivate struct OddFrame {
     var sx = 1.0, sy = 1.0, rot = 0.0, jump = 0.0, hipX = 0.0, hornWiggle = 0.0
-    var lookX = 0.0, lookY = 0.0, feetL = 0.0, feetR = 0.0
+    var lookX = 0.0, lookY = 0.0, feetL = 0.0, feetR = 0.0, liftL = 0.0, liftR = 0.0
     var eyeL = EyeKind.normal, eyeR = EyeKind.normal
     var mouth = MouthKind.smile, mouthScale = 1.0
     var exclaim = false, sparkle = 0.0, zzz = false, t = 0.0
@@ -123,57 +123,61 @@ final class OddityCharacter: DanceCharacter {
         }
 
         let amp = 0.6 + 0.4 * s.energy
-        let pulse = s.pulse, sway = s.sway, swayMid = s.swayMid, ph = s.phase
-        let arc = 4 * ph * (1 - ph)
+        let pulse = s.pulse, sway = s.sway, swayMid = s.swayMid
+        let hop = s.hop, land = s.land, stretch = s.stretch
+        // Amassa no kick: impacto mais um balanço suave.
+        let squash = 0.6 * land + 0.4 * pulse
         f.hornWiggle = 1.6 * swayMid * amp
 
         switch s.moveIndex {
-        case 0: // quicando no lugar
-            f.sy = 1 - 0.22 * pulse * amp
-            f.sx = 1 + 0.2 * pulse * amp
+        case 0: // quicando no lugar, amassando no kick
+            f.sy = 1 - 0.22 * squash * amp
+            f.sx = 1 + 0.2 * squash * amp
             f.lookX = sway
-            f.lookY = 0.4 * pulse
-        case 1: // pulinho feliz
-            f.jump = 0.9 * arc * amp
-            f.sy = 1 + 0.18 * arc - 0.18 * pulse
-            f.sx = 1 - 0.1 * arc + 0.15 * pulse
+            f.lookY = 0.4 * squash
+        case 1: // pulinho feliz: pousa no kick e amassa só depois de tocar o chão
+            f.jump = 0.9 * hop * amp
+            f.sy = 1 - 0.25 * land + 0.15 * stretch
+            f.sx = 1 + 0.22 * land - 0.1 * stretch
             f.eyeL = .happy
             f.eyeR = .happy
             f.mouth = .open
-            f.mouthScale = 0.8 + 0.4 * arc
+            f.mouthScale = 0.8 + 0.4 * hop
         case 2: // giro
             let spinAngle = Double.pi * s.beatFrac / 2
             let spin = cos(spinAngle)
             let sign: Double = spin < 0 ? -1 : 1
             f.sx = sign * max(0.18, abs(spin))
-            f.sy = 1 - 0.1 * pulse
+            f.sy = 1 - 0.1 * squash
             f.lookX = -sin(spinAngle) * 1.2
             f.mouth = .o
         case 3: // piscadinha com inclinação
             f.rot = 0.22 * sway * amp
-            f.sy = 1 - 0.1 * pulse
-            f.sx = 1 + 0.08 * pulse
+            f.sy = 1 - 0.1 * squash
+            f.sx = 1 + 0.08 * squash
             f.lookX = 0.6 * sway
-            if s.beatIndex % 2 == 1 && ph < 0.6 { f.eyeR = .happy }
-        case 4: // arrastando os pés, surpreso
+            if s.beatIndex % 2 == 1 && s.phase < 0.6 { f.eyeR = .happy }
+        case 4: // arrastando os pés, surpreso: cada pezinho sobe e bate no kick
             f.hipX = 0.35 * sway * amp
             f.feetL = 2.5 * sway
             f.feetR = -2.5 * sway
-            f.sy = 1 - 0.08 * pulse
+            f.liftL = s.rightStep ? 0 : hop
+            f.liftR = s.rightStep ? hop : 0
+            f.sy = 1 - 0.1 * land
             f.eyeL = .wide
             f.eyeR = .wide
             f.mouth = .o
             f.lookX = -0.8 * sway
-            f.exclaim = pulse > 0.6 && s.beatIndex % 4 == 0
-        default: // festa de estrelas
+            f.exclaim = land > 0.3 && s.beatIndex % 4 == 0
+        default: // festa de estrelas: pulinho com brilho explodindo no pouso
             f.eyeL = .star
             f.eyeR = .star
             f.mouth = .open
-            f.mouthScale = 0.9 + 0.3 * pulse
-            f.jump = 0.4 * arc * amp
-            f.sy = 1 - 0.15 * pulse
-            f.sx = 1 + 0.12 * pulse
-            f.sparkle = pow(1 - ph, 2)
+            f.mouthScale = 0.9 + 0.3 * land
+            f.jump = 0.4 * hop * amp
+            f.sy = 1 - 0.2 * land + 0.1 * stretch
+            f.sx = 1 + 0.15 * land - 0.06 * stretch
+            f.sparkle = land
             f.rot = 0.1 * swayMid
         }
 
@@ -251,8 +255,8 @@ final class OddityCharacter: DanceCharacter {
             sh.append(.ellipse(cos(a) * 18, sin(a) * 16, 5, 5, Pal.white))
         }
         // Pés.
-        sh.append(.ellipse(-9 + f.feetL, 19, 4, 2.5, Pal.yellow))
-        sh.append(.ellipse(9 + f.feetR, 19, 4, 2.5, Pal.purple))
+        sh.append(.ellipse(-9 + f.feetL, 19 - 3 * f.liftL, 4, 2.5, Pal.yellow))
+        sh.append(.ellipse(9 + f.feetR, 19 - 3 * f.liftR, 4, 2.5, Pal.purple))
         // Marquinha "x" na testa e bochechas.
         polyline([(-10.5, -13.5), (-7.5, -10.5)], 0.7, Pal.lavender, &sh)
         polyline([(-7.5, -13.5), (-10.5, -10.5)], 0.7, Pal.lavender, &sh)

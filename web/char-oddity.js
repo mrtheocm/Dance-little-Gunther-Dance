@@ -89,8 +89,8 @@
       sh.push(ellipse(Math.cos(a) * 18, Math.sin(a) * 16, 5, 5, C.white));
     }
     // Pés.
-    sh.push(ellipse(-9 + f.feetL, 19, 4, 2.5, C.yellow));
-    sh.push(ellipse(9 + f.feetR, 19, 4, 2.5, C.purple));
+    sh.push(ellipse(-9 + f.feetL, 19 - 3 * f.liftL, 4, 2.5, C.yellow));
+    sh.push(ellipse(9 + f.feetR, 19 - 3 * f.liftR, 4, 2.5, C.purple));
     // Marquinha "x" na testa e bochechas.
     polyline([[-10.5, -13.5], [-7.5, -10.5]], 0.7, C.lavender, sh);
     polyline([[-7.5, -13.5], [-10.5, -10.5]], 0.7, C.lavender, sh);
@@ -182,7 +182,7 @@
   function computeFrame(s) {
     const f = {
       sx: 1, sy: 1, rot: 0, jump: 0, hipX: 0, hornWiggle: 0, lookX: 0, lookY: 0,
-      feetL: 0, feetR: 0, eyeL: 'normal', eyeR: 'normal', mouth: 'smile', mouthScale: 1,
+      feetL: 0, feetR: 0, liftL: 0, liftR: 0, eyeL: 'normal', eyeR: 'normal', mouth: 'smile', mouthScale: 1,
       exclaim: false, sparkle: 0, zzz: false, t: s.wallTime,
     };
     if (!s.dancing) {
@@ -197,58 +197,61 @@
       return f;
     }
     const amp = 0.6 + 0.4 * s.energy;
-    const { pulse, sway, swayMid, phase: ph, beatFrac } = s;
-    const arc = 4 * ph * (1 - ph);
+    const { pulse, sway, swayMid, beatFrac, hop, land, stretch } = s;
+    // Amassa no kick: impacto mais um balanço suave.
+    const squash = 0.6 * land + 0.4 * pulse;
     f.hornWiggle = 1.6 * swayMid * amp;
 
     switch (s.moveIndex) {
-      case 0: // quicando no lugar
-        f.sy = 1 - 0.22 * pulse * amp;
-        f.sx = 1 + 0.2 * pulse * amp;
+      case 0: // quicando no lugar, amassando no kick
+        f.sy = 1 - 0.22 * squash * amp;
+        f.sx = 1 + 0.2 * squash * amp;
         f.lookX = sway;
-        f.lookY = 0.4 * pulse;
+        f.lookY = 0.4 * squash;
         break;
-      case 1: // pulinho feliz
-        f.jump = 0.9 * arc * amp;
-        f.sy = 1 + 0.18 * arc - 0.18 * pulse;
-        f.sx = 1 - 0.1 * arc + 0.15 * pulse;
+      case 1: // pulinho feliz: pousa no kick e amassa só depois de tocar o chão
+        f.jump = 0.9 * hop * amp;
+        f.sy = 1 - 0.25 * land + 0.15 * stretch;
+        f.sx = 1 + 0.22 * land - 0.1 * stretch;
         f.eyeL = f.eyeR = 'happy';
         f.mouth = 'open';
-        f.mouthScale = 0.8 + 0.4 * arc;
+        f.mouthScale = 0.8 + 0.4 * hop;
         break;
       case 2: { // giro
         const spin = Math.cos((Math.PI * beatFrac) / 2);
         f.sx = Math.sign(spin || 1) * Math.max(0.18, Math.abs(spin));
-        f.sy = 1 - 0.1 * pulse;
+        f.sy = 1 - 0.1 * squash;
         f.lookX = -Math.sin((Math.PI * beatFrac) / 2) * 1.2;
         f.mouth = 'o';
         break;
       }
       case 3: // piscadinha com inclinação
         f.rot = 0.22 * sway * amp;
-        f.sy = 1 - 0.1 * pulse;
-        f.sx = 1 + 0.08 * pulse;
+        f.sy = 1 - 0.1 * squash;
+        f.sx = 1 + 0.08 * squash;
         f.lookX = 0.6 * sway;
-        if (s.beatIndex % 2 === 1 && ph < 0.6) f.eyeR = 'happy';
+        if (s.beatIndex % 2 === 1 && s.phase < 0.6) f.eyeR = 'happy';
         break;
-      case 4: // arrastando os pés, surpreso
+      case 4: // arrastando os pés, surpreso: cada pezinho sobe e bate no kick
         f.hipX = 0.35 * sway * amp;
         f.feetL = 2.5 * sway;
         f.feetR = -2.5 * sway;
-        f.sy = 1 - 0.08 * pulse;
+        f.liftL = s.rightStep ? 0 : hop;
+        f.liftR = s.rightStep ? hop : 0;
+        f.sy = 1 - 0.1 * land;
         f.eyeL = f.eyeR = 'wide';
         f.mouth = 'o';
         f.lookX = -0.8 * sway;
-        f.exclaim = pulse > 0.6 && s.beatIndex % 4 === 0;
+        f.exclaim = land > 0.3 && s.beatIndex % 4 === 0;
         break;
-      default: // festa de estrelas
+      default: // festa de estrelas: pulinho com brilho explodindo no pouso
         f.eyeL = f.eyeR = 'star';
         f.mouth = 'open';
-        f.mouthScale = 0.9 + 0.3 * pulse;
-        f.jump = 0.4 * arc * amp;
-        f.sy = 1 - 0.15 * pulse;
-        f.sx = 1 + 0.12 * pulse;
-        f.sparkle = Math.pow(1 - ph, 2);
+        f.mouthScale = 0.9 + 0.3 * land;
+        f.jump = 0.4 * hop * amp;
+        f.sy = 1 - 0.2 * land + 0.1 * stretch;
+        f.sx = 1 + 0.15 * land - 0.06 * stretch;
+        f.sparkle = land;
         f.rot = 0.1 * swayMid;
     }
     // Grave forte: olhos de estrela por um instante.
