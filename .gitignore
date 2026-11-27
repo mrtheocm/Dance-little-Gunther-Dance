@@ -1,5 +1,2 @@
-xcuserdata/
-*.xcuserstate
-DerivedData/
-build/
 .DS_Store
+node_modules/

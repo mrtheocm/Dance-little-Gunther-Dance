@@ -1,4 +1,4 @@
-// Detecção de batida e BPM em tempo real. Mesma lógica do BeatDetector.swift.
+// Detecção de batida e BPM em tempo real.
 // Sem dependências: roda no navegador e no Node (para os testes).
 (function (root) {
   'use strict';
